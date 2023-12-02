@@ -13,7 +13,7 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
         current_node = []
         nodes = []
 
-        # ignore first values
+        # Ignore first values
         for line in fp:
             if line.strip() == "NODES INFO":  # We are done reading parameters moving on to nodes
                 break
@@ -34,7 +34,7 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
             for entry in line.split(","):  # split values according to commas
                 try:
                     current_node.append(int(entry))
-                except ValueError:
+                except ValueError:  # capacity is float
                     current_node.append(float(entry))
             nodes.append(current_node.copy())
             current_node.clear()
