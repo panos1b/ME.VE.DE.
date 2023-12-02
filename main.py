@@ -42,8 +42,8 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
     demand_dictionary = {node_id: node[3] for node_id, node in enumerate(nodes)}
     # this dictionary will connect node ids with capacity
 
-    distance_dictionary = {(i, j): math.dist([nodes[i][1], nodes[i][2]], [nodes[j][1], nodes[j][2]]) for i in
-                           range(len(nodes)) for j in range(len(nodes))}
+    distance_dictionary = {(i, j): math.dist([node_i[1], node_i[2]], [node_j[1], node_j[2]]) for i, node_i in
+                           enumerate(nodes) for j, node_j in enumerate(nodes)}
     # this dictionary will connect tuples (x,y) to the distance of modes with id x and y
 
     return distance_dictionary, demand_dictionary
