@@ -10,7 +10,7 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
     a node id to the capacity of that node
     """
     with open(path) as fp:
-        currentnodeinfo = []
+        current_node = []
         nodes = []
 
         # ignore first values
@@ -18,7 +18,7 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
             if line.strip() == "NODES INFO":  # We are done reading parameters moving on to nodes
                 break
         #####################################################
-        # Read more parameters if necessary
+        # Reads more parameters if necessary
         #     else:
         #         key, value = line.split(",")
         #         match key:
@@ -33,25 +33,19 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
         for line in fp:
             for entry in line.split(","):  # split values according to commas
                 try:
-                    currentnodeinfo.append(int(entry))
+                    current_node.append(int(entry))
                 except ValueError:
-                    currentnodeinfo.append(float(entry))
-            nodes.append(currentnodeinfo.copy())
-            currentnodeinfo.clear()
+                    current_node.append(float(entry))
+            nodes.append(current_node.copy())
+            current_node.clear()
+    demand_dictionary = [node[3] for node in nodes]  # this dictionary will connect node ids with capacity
 
-    distance_dictionary = dict()  # this dictionary will connect node ids with capacity#
-    demand_dictionary = dict()  # this dictionary will connect tuples (x,y) to the distance of modes with id x and y#
-    for i in range(len(nodes)):
-        demand_dictionary[i] = nodes[i][3]
-        for j in range(len(nodes)):
-            Ix = nodes[i][1]
-            Iy = nodes[i][2]
-            Jx = nodes[j][1]
-            Jy = nodes[j][2]
-            distance = math.dist([Ix, Iy], [Jx, Jy])
-            distance_dictionary[(i, j)] = distance
+    distance_dictionary = {(i, j): math.dist([nodes[i][1], nodes[i][2]], [nodes[j][1], nodes[j][2]]) for i in
+                           range(len(nodes)) for j in range(len(nodes))}
+    # this dictionary will connect tuples (x,y) to the distance of modes with id x and y
+
     return distance_dictionary, demand_dictionary
 
 
 if __name__ == '__main__':
-    distance_dictionary, demand_dictionary = read_instance('Instance.txt')
+    distances, demands = read_instance("Instance.txt")
