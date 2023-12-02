@@ -18,7 +18,7 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
             if line.strip() == "NODES INFO":  # We are done reading parameters moving on to nodes
                 break
         #####################################################
-        # Reads more parameters if necessary
+        # Read more parameters if necessary
         #     else:
         #         key, value = line.split(",")
         #         match key:
@@ -38,7 +38,9 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
                     current_node.append(float(entry))
             nodes.append(current_node.copy())
             current_node.clear()
-    demand_dictionary = [node[3] for node in nodes]  # this dictionary will connect node ids with capacity
+
+    demand_dictionary = {node_id: node[3] for node_id, node in enumerate(nodes)}
+    # this dictionary will connect node ids with capacity
 
     distance_dictionary = {(i, j): math.dist([nodes[i][1], nodes[i][2]], [nodes[j][1], nodes[j][2]]) for i in
                            range(len(nodes)) for j in range(len(nodes))}
@@ -48,4 +50,4 @@ def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, fl
 
 
 if __name__ == '__main__':
-    distances, demands = read_instance("Instance.txt")
+    distances, demands = read_instance('Instance.txt')
