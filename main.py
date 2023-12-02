@@ -2,7 +2,13 @@ import math
 
 
 def read_instance(path: str) -> tuple[dict[tuple[int, int], float], dict[int, float]]:
+    """
+    This method reads an instance file and  returns two dictionaries containing metrics for the nodes
 
+    :param path: This parameters should contain the path for the instance txt file
+    :return: The fist dictionairy connects two node ids to the distance between them. The second one connects
+    a node id to the capacity of that node
+    """
     with open(path) as fp:
         currentnodeinfo = []
         nodes = []
