@@ -1,6 +1,4 @@
-import random
 import math
-
 
 class Model:
 
@@ -12,33 +10,36 @@ class Model:
         self.capacity = -1
 
     def BuildModel(self):
-        random.seed(1)
-        depot = Node(0, 50, 50, 0)
-        self.allNodes.append(depot)
+        """ Reads the data of the Instance and builds the VRP model"""
 
-        self.capacity = 50
-        totalCustomers = 120
-
-        # self.capacity = 10
-        # totalCustomers = 20
-
-        for i in range (0, totalCustomers):
-            x = random.randint(0, 100)
-            y = random.randint(0, 100)
-            dem = random.randint(1, 4)
-            cust = Node(i + 1, x, y, dem)
-            self.allNodes.append(cust)
-            self.customers.append(cust)
-
+        with open('Instance.txt', 'r') as file:
+            for line in file:
+                line = line.strip()  
+                if line.startswith('CAPACITY'):
+                    self.capacity = int(line.split(',')[1])
+                elif line.startswith('EMPTY_VEHICLE_WEIGHT'):
+                    self.empty_vehicle_weight = int(line.split(',')[1])
+                elif line.startswith('CUSTOMERS'):
+                    self.total_customers = int(line.split(',')[1])
+                elif line.startswith('ID') or line.startswith('NODES INFO'):
+                    continue
+                else:
+                    id, x, y, demand = line.split(',')
+                    node = Node(int(id),int(x), int(y),float(demand))
+                    self.allNodes.append(node)
+                    if id!=0:
+                        self.customers.append(node)                                  
         rows = len(self.allNodes)
         self.matrix = [[0.0 for x in range(rows)] for y in range(rows)]
-
-        for i in range(0, len(self.allNodes)):
+        for i in range(0, len(self.allNodes)): #calculate distance between nodes
             for j in range(0, len(self.allNodes)):
                 a = self.allNodes[i]
                 b = self.allNodes[j]
                 dist = math.sqrt(math.pow(a.x - b.x, 2) + math.pow(a.y - b.y, 2))
                 self.matrix[i][j] = dist
+      # for i in range(0, len(self.allNodes)):
+       #    self.matrix[i][0] = 0  # make move from customer to depot costless
+
 
 class Node:
     def __init__(self, idd, xx, yy, dem):
