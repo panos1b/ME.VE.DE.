@@ -2,6 +2,7 @@ import math
 
 class Model:
 
+
 # instance variables
     def __init__(self):
         self.allNodes = []
@@ -42,7 +43,46 @@ class Model:
 
 
 class Node:
+    """
+    Represents a customer node in the network.
+
+    Attributes:
+    -----------
+    x : int
+        The x-coordinate of the node in the network.
+    y : int
+        The y-coordinate of the node in the network.
+    ID : int
+        The unique identifier for the node.
+    demand : float
+        The demand associated with the customer node.
+    isRouted : bool
+        A flag indicating if the node has been routed in a solution or not.
+
+    Methods:
+    --------
+    __init__(idd, xx, yy, dem):
+        Initializes a Node object with given attributes.
+
+    """
+
     def __init__(self, idd, xx, yy, dem):
+        """
+        Initialize a Node object.
+
+        Parameters:
+        -----------
+        idd : int
+            Unique identifier for the node.
+        xx : int
+            x-coordinate of the node.
+        yy : int
+            y-coordinate of the node.
+        dem : float
+            Demand associated with the node.
+
+        """
+
         self.x = xx
         self.y = yy
         self.ID = idd

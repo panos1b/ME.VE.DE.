@@ -75,6 +75,29 @@ def calculate_route_details(nodes_sequence, empty_vehicle_weight):
 
 
 def test_solution(file_name, all_nodes, capacity, empty_vehicle_weight):
+    """
+    Verify the correctness  of a given solution to the VRP instance.
+
+    This function reads the solution.txt file, reads the second line to get the reported objective and
+    reads the fourth line to get the number of vehicles used, track how many times each customer (node) is visited in the solution. Also, processes the routes of each vehicle,
+    and checks against the constraints and objectives to ensure the validity of the solution.
+
+    Parameters:
+    -----------
+    file_name : str
+        The path to the solution file containing the reported objective and vehicle routes.
+    all_nodes : list
+        A list containing all Node objects representing customers in the VRP instance.
+    capacity : float
+        The maximum capacity of each vehicle in the VRP instance.
+    empty_vehicle_weight : float
+        The weight of an empty vehicle, used for calculating route details.
+
+    Returns:
+    --------
+    None. Prints messages indicating the verification result or errors.
+
+    """
     all_lines = list(open(file_name, "r"))
     line = all_lines[1]
     objective_reported = float(line.strip())
