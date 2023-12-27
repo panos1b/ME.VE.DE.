@@ -83,7 +83,25 @@ class RelocationMove(object):
 
 
 class SwapMove(object):
+    """
+    Represents a potential swap move in the VRP.
+
+    Attributes:
+        positionOfFirstRoute (int): Index of the first route involved in the swap.
+        positionOfSecondRoute (int): Index of the second route involved in the swap.
+        positionOfFirstNode (int): Index of the node in the first route to be swapped.
+        positionOfSecondNode (int): Index of the node in the second route to be swapped.
+        costChangeFirstRt (float): Cost change associated with the swap in the first route.
+        costChangeSecondRt (float): Cost change associated with the swap in the second route.
+        moveCost (float): Total cost change resulting from the swap operation.
+    """
+
     def __init__(self):
+        """
+        Initializes a SwapMove object.
+
+        The moveCost attribute is set to a large value (10^9) to ensure it is initially higher than any potential cost change.
+        """
         self.positionOfFirstRoute = None
         self.positionOfSecondRoute = None
         self.positionOfFirstNode = None
@@ -91,7 +109,13 @@ class SwapMove(object):
         self.costChangeFirstRt = None
         self.costChangeSecondRt = None
         self.moveCost = None
+
     def Initialize(self):
+        """
+        Resets the attributes of the SwapMove object to their initial values.
+
+        The moveCost attribute is set back to a large value to allow easy replacement with a better cost during calculations.
+        """
         self.positionOfFirstRoute = None
         self.positionOfSecondRoute = None
         self.positionOfFirstNode = None
@@ -101,11 +125,28 @@ class SwapMove(object):
         self.moveCost = 10 ** 9
 
 
+
 class CustomerInsertion(object):
+    """
+    Represents a potential customer insertion in the VRP.
+
+    Attributes:
+        customer (Node): The customer node to be inserted.
+        route (Route): The route where the customer is considered for insertion.
+        cost (float): The cost associated with inserting the customer into the route.
+                      Initialized to a large value to allow easy replacement with a better cost.
+    """
+
     def __init__(self):
+        """
+        Initializes a CustomerInsertion object.
+
+        The cost attribute is set to a large value (10^9) to ensure it is initially higher than any potential insertion cost.
+        """
         self.customer = None
         self.route = None
         self.cost = 10 ** 9
+
 
 class CustomerInsertionAllPositions(object):
     def __init__(self):
@@ -489,16 +530,31 @@ class Solver:
                             self.StoreBestRelocationMove(originRouteIndex, targetRouteIndex, originNodeIndex, targetNodeIndex, moveCost, originRtCostChange, targetRtCostChange, rm)
 
     def FindBestSwapMove(self, sm):
+        """
+        Finds the best swap move among all possible combinations of nodes in the solution's routes.
+
+        Args:
+            self: Instance of the VehicleRoutingProblem class.
+            sm (SwapMove): The SwapMove object to store the best swap move.
+
+        Returns:
+            None
+
+        This method iterates through all routes and nodes, evaluating potential swap moves.
+        It calculates the cost changes for each move and updates the provided SwapMove object
+        with the details of the best move found.
+        """
         for firstRouteIndex in range(0, len(self.sol.routes)):
-            rt1:Route = self.sol.routes[firstRouteIndex]
-            for secondRouteIndex in range (firstRouteIndex, len(self.sol.routes)):
-                rt2:Route = self.sol.routes[secondRouteIndex]
-                for firstNodeIndex in range (1, len(rt1.sequenceOfNodes) - 1):
+            rt1: Route = self.sol.routes[firstRouteIndex]
+            for secondRouteIndex in range(firstRouteIndex, len(self.sol.routes)):
+                rt2: Route = self.sol.routes[secondRouteIndex]
+                for firstNodeIndex in range(1, len(rt1.sequenceOfNodes) - 1):
                     startOfSecondNodeIndex = 1
                     if rt1 == rt2:
                         startOfSecondNodeIndex = firstNodeIndex + 1
-                    for secondNodeIndex in range (startOfSecondNodeIndex, len(rt2.sequenceOfNodes) - 1):
+                    for secondNodeIndex in range(startOfSecondNodeIndex, len(rt2.sequenceOfNodes) - 1):
 
+                        # Extract nodes involved in the swap from both routes
                         a1 = rt1.sequenceOfNodes[firstNodeIndex - 1]
                         b1 = rt1.sequenceOfNodes[firstNodeIndex]
                         c1 = rt1.sequenceOfNodes[firstNodeIndex + 1]
@@ -513,20 +569,20 @@ class Solver:
 
                         if rt1 == rt2:
                             if firstNodeIndex == secondNodeIndex - 1:
-                                # case of consecutive nodes swap
+                                # Case of consecutive nodes swap
                                 costRemoved = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][b2.ID] + \
-                                              self.distanceMatrix[b2.ID][c2.ID]
+                                            self.distanceMatrix[b2.ID][c2.ID]
                                 costAdded = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][b1.ID] + \
                                             self.distanceMatrix[b1.ID][c2.ID]
                                 moveCost = costAdded - costRemoved
                             else:
-
                                 costRemoved1 = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][c1.ID]
                                 costAdded1 = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][c1.ID]
                                 costRemoved2 = self.distanceMatrix[a2.ID][b2.ID] + self.distanceMatrix[b2.ID][c2.ID]
                                 costAdded2 = self.distanceMatrix[a2.ID][b1.ID] + self.distanceMatrix[b1.ID][c2.ID]
                                 moveCost = costAdded1 + costAdded2 - (costRemoved1 + costRemoved2)
                         else:
+                            # Check if the swap is feasible in terms of capacity constraints
                             if rt1.load - b1.demand + b2.demand > self.capacity:
                                 continue
                             if rt2.load - b2.demand + b1.demand > self.capacity:
@@ -542,113 +598,236 @@ class Solver:
 
                             moveCost = costAdded1 + costAdded2 - (costRemoved1 + costRemoved2)
 
+                        # Update the SwapMove object if the current move has a lower cost
                         if moveCost < sm.moveCost:
                             self.StoreBestSwapMove(firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex,
-                                                   moveCost, costChangeFirstRoute, costChangeSecondRoute, sm)
+                                                moveCost, costChangeFirstRoute, costChangeSecondRoute, sm)
+
 
     def ApplyRelocationMove(self, rm: RelocationMove):
+        """
+        Applies the relocation move to the current solution.
 
+        Args:
+            rm (RelocationMove): The relocation move to be applied.
+
+        Returns:
+            None
+
+        This method updates the solution by relocating a node from its current position
+        to a new position within the same route or a different route, as specified by the
+        given relocation move. The solution's cost, route costs, and loads are adjusted accordingly.
+        """
+        # Calculate the total cost of the solution before the move
         oldCost = self.CalculateTotalCost(self.sol)
 
+        # Retrieve the origin and target routes from the solution
         originRt = self.sol.routes[rm.originRoutePosition]
         targetRt = self.sol.routes[rm.targetRoutePosition]
 
+        # Node to be relocated
         B = originRt.sequenceOfNodes[rm.originNodePosition]
 
+        # Case: Relocating within the same route
         if originRt == targetRt:
             del originRt.sequenceOfNodes[rm.originNodePosition]
-            if (rm.originNodePosition < rm.targetNodePosition):
+            # Insert the node at the new position within the same route
+            if rm.originNodePosition < rm.targetNodePosition:
                 targetRt.sequenceOfNodes.insert(rm.targetNodePosition, B)
             else:
                 targetRt.sequenceOfNodes.insert(rm.targetNodePosition + 1, B)
 
+            # Update the cost of the origin route
             originRt.cost += rm.moveCost
         else:
+            # Case: Relocating to a different route
             del originRt.sequenceOfNodes[rm.originNodePosition]
+            # Insert the node at the new position in the target route
             targetRt.sequenceOfNodes.insert(rm.targetNodePosition + 1, B)
+            # Update costs and loads for both origin and target routes
             originRt.cost += rm.costChangeOriginRt
             targetRt.cost += rm.costChangeTargetRt
             originRt.load -= B.demand
             targetRt.load += B.demand
 
+        # Update the total cost of the solution
         self.sol.cost += rm.moveCost
 
+        # Calculate the total cost of the solution after the move
         newCost = self.CalculateTotalCost(self.sol)
-        #debuggingOnly
+
+        # Debugging check for cost consistency
         if abs((newCost - oldCost) - rm.moveCost) > 0.0001:
             print('Cost Issue')
 
 
+
     def ApplySwapMove(self, sm):
-       oldCost = self.CalculateTotalCost(self.sol)
-       rt1 = self.sol.routes[sm.positionOfFirstRoute]
-       rt2 = self.sol.routes[sm.positionOfSecondRoute]
-       b1 = rt1.sequenceOfNodes[sm.positionOfFirstNode]
-       b2 = rt2.sequenceOfNodes[sm.positionOfSecondNode]
-       rt1.sequenceOfNodes[sm.positionOfFirstNode] = b2
-       rt2.sequenceOfNodes[sm.positionOfSecondNode] = b1
+        """
+        Apply a swap move to the solution.
 
-       if (rt1 == rt2):
-           rt1.cost += sm.moveCost
-       else:
-           rt1.cost += sm.costChangeFirstRt
-           rt2.cost += sm.costChangeSecondRt
-           rt1.load = rt1.load - b1.demand + b2.demand
-           rt2.load = rt2.load + b1.demand - b2.demand
+        Parameters:
+        - sm (SwapMove): The swap move containing information about the move.
 
-       self.sol.cost += sm.moveCost
+        Returns:
+        None
+        """
+        oldCost = self.CalculateTotalCost(self.sol)
 
-       newCost = self.CalculateTotalCost(self.sol)
-       # debuggingOnly
-       if abs((newCost - oldCost) - sm.moveCost) > 0.0001:
-           print('Cost Issue')
+        rt1 = self.sol.routes[sm.positionOfFirstRoute]
+        rt2 = self.sol.routes[sm.positionOfSecondRoute]
+        b1 = rt1.sequenceOfNodes[sm.positionOfFirstNode]
+        b2 = rt2.sequenceOfNodes[sm.positionOfSecondNode]
+
+        # Swap the nodes between the two routes
+        rt1.sequenceOfNodes[sm.positionOfFirstNode] = b2
+        rt2.sequenceOfNodes[sm.positionOfSecondNode] = b1
+
+        # Update costs and loads based on whether the swap occurs within the same route or between different routes
+        if rt1 == rt2:
+            rt1.cost += sm.moveCost
+        else:
+            rt1.cost += sm.costChangeFirstRt
+            rt2.cost += sm.costChangeSecondRt
+            rt1.load = rt1.load - b1.demand + b2.demand
+            rt2.load = rt2.load + b1.demand - b2.demand
+
+        # Update the total cost of the solution
+        self.sol.cost += sm.moveCost
+
+        newCost = self.CalculateTotalCost(self.sol)
+
+        # Debugging check for cost consistency
+        if abs((newCost - oldCost) - sm.moveCost) > 0.0001:
+            print('Cost Issue')
+
 
     def ReportSolution(self, sol):
+        """
+        Print a report of the given solution.
+
+        Parameters:
+        - sol (Solution): The solution to be reported.
+
+        Returns:
+        None
+        """
+        # Iterate through each route in the solution
         for i in range(0, len(sol.routes)):
             rt = sol.routes[i]
-            for j in range (0, len(rt.sequenceOfNodes)):
+
+            # Print the sequence of node IDs in the route
+            for j in range(0, len(rt.sequenceOfNodes)):
                 print(rt.sequenceOfNodes[j].ID, end=' ')
+
+            # Print the cost of the route
             print(rt.cost)
-        print (self.sol.cost)
+
+        # Print the total cost of the solution
+        print(self.sol.cost)
+
 
     def GetLastOpenRoute(self):
+        """
+        Get the last open route in the current solution.
+
+        Returns:
+        - Route or None: The last open route if routes exist, otherwise None.
+        """
+        # Check if there are any routes in the solution
         if len(self.sol.routes) == 0:
+            # If no routes exist, return None
             return None
         else:
+            # Return the last route in the solution
             return self.sol.routes[-1]
 
+
     def IdentifyBestInsertion(self, bestInsertion, rt):
+        """
+        Identifies the best customer insertion for a given route, considering capacity constraints.
+
+        Parameters:
+        - bestInsertion (CustomerInsertion): An object to store information about the best insertion.
+        - rt (Route): The route for which the insertion is being considered.
+
+        Returns:
+        None
+
+        Modifies the bestInsertion object with the details of the best customer insertion.
+        """
         for i in range(0, len(self.customers)):
-            candidateCust:Node = self.customers[i]
+            candidateCust: Node = self.customers[i]
             if candidateCust.isRouted is False:
+                # Check if adding the candidate customer to the route exceeds its capacity
                 if rt.load + candidateCust.demand <= rt.capacity:
+                    # Calculate the cost of inserting the customer into the route
                     lastNodePresentInTheRoute = rt.sequenceOfNodes[-2]
                     trialCost = self.distanceMatrix[lastNodePresentInTheRoute.ID][candidateCust.ID]
+
+                    # Update bestInsertion if the current trialCost is better
                     if trialCost < bestInsertion.cost:
                         bestInsertion.customer = candidateCust
                         bestInsertion.route = rt
                         bestInsertion.cost = trialCost
 
+
     def ApplyCustomerInsertion(self, insertion):
+        """
+        Applies the customer insertion to the given route in the solution.
+
+        Parameters:
+        - insertion (CustomerInsertion): An object containing information about the customer insertion.
+
+        Returns:
+        None
+
+        Modifies the route and solution to reflect the applied customer insertion.
+        """
         insCustomer = insertion.customer
         rt = insertion.route
-        #before the second depot occurrence
+
+        # Insert the customer before the second depot occurrence
         insIndex = len(rt.sequenceOfNodes) - 1
         rt.sequenceOfNodes.insert(insIndex, insCustomer)
 
+        # Identify the node present in the route before the inserted customer
         beforeInserted = rt.sequenceOfNodes[-3]
 
+        # Calculate the cost added and removed due to the customer insertion
         costAdded = self.distanceMatrix[beforeInserted.ID][insCustomer.ID] + self.distanceMatrix[insCustomer.ID][self.depot.ID]
         costRemoved = self.distanceMatrix[beforeInserted.ID][self.depot.ID]
 
+        # Update the route and solution costs
         rt.cost += costAdded - costRemoved
         self.sol.cost += costAdded - costRemoved
 
+        # Update the load of the route with the demand of the inserted customer
         rt.load += insCustomer.demand
 
+        # Mark the inserted customer as routed
         insCustomer.isRouted = True
 
     def StoreBestRelocationMove(self, originRouteIndex, targetRouteIndex, originNodeIndex, targetNodeIndex, moveCost, originRtCostChange, targetRtCostChange, rm:RelocationMove):
+        """
+        Stores the information about the best relocation move in the given RelocationMove object.
+
+        Parameters:
+        - originRouteIndex (int): Index of the origin route.
+        - targetRouteIndex (int): Index of the target route.
+        - originNodeIndex (int): Index of the node in the origin route.
+        - targetNodeIndex (int): Index of the node in the target route.
+        - moveCost (float): Cost change due to the relocation move.
+        - originRtCostChange (float): Cost change in the origin route.
+        - targetRtCostChange (float): Cost change in the target route.
+        - rm (RelocationMove): RelocationMove object to store the information.
+
+        Returns:
+        None
+
+        Modifies the given RelocationMove object with the information about the best relocation move.
+        """
+        # Set the attributes of the RelocationMove object with the provided information
         rm.originRoutePosition = originRouteIndex
         rm.originNodePosition = originNodeIndex
         rm.targetRoutePosition = targetRouteIndex
@@ -657,7 +836,27 @@ class Solver:
         rm.costChangeTargetRt = targetRtCostChange
         rm.moveCost = moveCost
 
+
     def StoreBestSwapMove(self, firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex, moveCost, costChangeFirstRoute, costChangeSecondRoute, sm):
+        """
+        Stores the information about the best swap move in the given SwapMove object.
+
+        Parameters:
+        - firstRouteIndex (int): Index of the first route involved in the swap.
+        - secondRouteIndex (int): Index of the second route involved in the swap.
+        - firstNodeIndex (int): Index of the node in the first route.
+        - secondNodeIndex (int): Index of the node in the second route.
+        - moveCost (float): Cost change due to the swap move.
+        - costChangeFirstRoute (float): Cost change in the first route.
+        - costChangeSecondRoute (float): Cost change in the second route.
+        - sm (SwapMove): SwapMove object to store the information.
+
+        Returns:
+        None
+
+        Modifies the given SwapMove object with the information about the best swap move.
+        """
+        # Set the attributes of the SwapMove object with the provided information
         sm.positionOfFirstRoute = firstRouteIndex
         sm.positionOfSecondRoute = secondRouteIndex
         sm.positionOfFirstNode = firstNodeIndex
@@ -666,15 +865,37 @@ class Solver:
         sm.costChangeSecondRt = costChangeSecondRoute
         sm.moveCost = moveCost
 
+
     def CalculateTotalCost(self, sol):
+        """
+        Calculates the total cost of a given solution.
+
+        Parameters:
+        - sol (Solution): Solution object for which the total cost is calculated.
+
+        Returns:
+        float: Total cost of the solution.
+
+        Iterates through each route in the solution and computes the sum of distances
+        between consecutive nodes in each route, using the distance matrix.
+        """
+        # Initialize the total cost
         c = 0
-        for i in range (0, len(sol.routes)):
+
+        # Iterate through each route in the solution
+        for i in range(0, len(sol.routes)):
             rt = sol.routes[i]
-            for j in range (0, len(rt.sequenceOfNodes) - 1):
+
+            # Iterate through each pair of consecutive nodes in the route
+            for j in range(0, len(rt.sequenceOfNodes) - 1):
                 a = rt.sequenceOfNodes[j]
                 b = rt.sequenceOfNodes[j + 1]
+
+                # Accumulate the distance between nodes 'a' and 'b' to the total cost
                 c += self.distanceMatrix[a.ID][b.ID]
+
         return c
+
 
     def InitializeOperators(self, rm, sm, top):
         rm.Initialize()

@@ -91,9 +91,17 @@ class Node:
 
 class Route:
     def __init__(self, dp, cap):
+        """
+        Initializes a route with a starting depot and maximum capacity.
+
+        Parameters:
+        - depot (Node): The starting depot for the route.
+        - capacity (float): The maximum capacity of the route.
+        """
+        # Initialize with the depot twice (start and end)
         self.sequenceOfNodes = []
         self.sequenceOfNodes.append(dp)
         self.sequenceOfNodes.append(dp)
-        self.cost = 0
-        self.capacity = cap
-        self.load = 0
+        self.cost = 0 # Initialize route cost to zero
+        self.capacity = cap # Maximum capacity of the route
+        self.load = 0 # Current load on the route

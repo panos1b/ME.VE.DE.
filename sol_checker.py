@@ -11,36 +11,53 @@ class Node:
 
 
 def load_model(file_name):
+    '''
+    Loads a vehicle routing problem model from a file.
+
+    :param file_name: The name of the file containing the problem instance.
+    :return: A tuple containing a list of Node objects, capacity, and empty vehicle weight.
+    '''
+    # List to store all nodes in the problem instance
     all_nodes = []
+
+    # Read all lines from the input file
     all_lines = list(open(file_name, "r"))
 
+    # Separator used in the input file
     separator = ','
 
+    # Counter to keep track of the current line being processed
     line_counter = 0
 
+    # Extract capacity from the first line of the file
     ln = all_lines[line_counter]
     no_spaces = ln.split(sep=separator)
     capacity = int(no_spaces[1])
 
+    # Move to the next line and extract empty vehicle weight
     line_counter += 1
     ln = all_lines[line_counter]
     no_spaces = ln.split(sep=separator)
     empty_vehicle_weight = int(no_spaces[1])
 
+    # Move to the next line and extract the total number of customers
     line_counter += 1
     ln = all_lines[line_counter]
     no_spaces = ln.split(sep=separator)
     tot_customers = int(no_spaces[1])
 
+    # Skip three lines to reach the line with depot coordinates
     line_counter += 3
     ln = all_lines[line_counter]
 
+    # Extract depot coordinates and create a Node object for the depot
     no_spaces = ln.split(sep=separator)
     x = float(no_spaces[1])
     y = float(no_spaces[2])
     depot = Node(0, x, y)
     all_nodes.append(depot)
 
+    # Loop through each customer and create Node objects for them
     for i in range(tot_customers):
         line_counter += 1
         ln = all_lines[line_counter]
@@ -52,7 +69,9 @@ def load_model(file_name):
         customer = Node(idd, x, y, demand)
         all_nodes.append(customer)
 
+    # Return the list of nodes, capacity, and empty vehicle weight
     return all_nodes, capacity, empty_vehicle_weight
+
 
 
 def distance(from_node, to_node):
