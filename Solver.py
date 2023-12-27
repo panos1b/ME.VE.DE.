@@ -2,12 +2,64 @@ from VRP_Model import *
 from SolutionDrawer import *
 
 class Solution:
+    """
+    Represents a solution to the VRP instance.
+
+    Attributes:
+    -----------
+    cost : float
+        The total cost of the solution.
+    routes : list
+        A list containing the routes of vehicles in the solution.
+
+    Methods:
+    --------
+    __init__():
+        Initializes a Solution object with default attributes (cost = 0.0 and routes= []).
+    """
+
     def __init__(self):
+        """
+           Initialize a Solution object with default attributes.
+        """
         self.cost = 0.0
         self.routes = []
 
 class RelocationMove(object):
+    """
+    Represents a relocation move between nodes (customers) in a VRP solution.
+
+    Attributes:
+    -----------
+    originRoutePosition : int or None
+        Position of the origin route in the solution's routes list.
+    targetRoutePosition : int or None
+        Position of the target route in the solution's routes list.
+    originNodePosition : int or None
+        Position of the origin node within its route.
+    targetNodePosition : int or None
+        Position of the target node within its route.
+    costChangeOriginRt : float or None
+        Change in cost if the origin node is relocated.
+    costChangeTargetRt : float or None
+        Change in cost if the target node is relocated.
+    moveCost : float
+        Cost of the relocation move.
+
+    Methods:
+    --------
+
+    __init__():
+        Initialize a RelocationMove object with default attributes.
+
+    Initialize():
+        Reset all attributes to their initial state. The moveCost attribute is initialized with a high non-logical value (10^9) to signify that it needs to be recalculated during the relocation process.
+
+    """
     def __init__(self):
+        """
+        Initialize a RelocationMove object with default attributes.
+        """
         self.originRoutePosition = None
         self.targetRoutePosition = None
         self.originNodePosition = None
@@ -17,6 +69,10 @@ class RelocationMove(object):
         self.moveCost = None
 
     def Initialize(self):
+        """
+        Reset all attributes of the RelocationMove object to their initial state.
+        """
+
         self.originRoutePosition = None
         self.targetRoutePosition = None
         self.originNodePosition = None
@@ -77,7 +133,82 @@ class TwoOptMove(object):
 
 
 class Solver:
+    """
+    A class that provides methods to solve the Vehicle Routing Problem (VRP).
+
+    Attributes:
+    -----------
+    allNodes : list
+        List containing all nodes in the VRP, including the depot and customers.
+    customers : list
+        List containing only the customer nodes.
+    depot : Node
+        The depot node where all routes begin and end.
+    distanceMatrix : list of lists
+        A 2D list representing the distance between each pair of nodes.
+    capacity : float
+        The capacity of the vehicles in the VRP.
+    sol : Solution
+        An instance of the Solution class representing the current solution.
+    bestSolution : Solution
+        An instance of the Solution class representing the best solution found so far.
+
+    Methods:
+    --------
+    __init__(m):
+        Initialize the Solver with the given model 'm'.
+        - m: An instance of the Model class containing problem data.
+    solve():
+        Main method to solve the VRP.
+         Executes a sequence of methods to construct and optimize the solution.
+
+
+    SetRoutedFlagToFalseForAllCustomers():
+        Set the 'isRouted' flag to False for all customer nodes.
+        Ensures that all customers are unrouted before constructing a new solution.
+
+    ApplyNearestNeighborMethod():
+        Construct initial routes using the Nearest Neighbor method.
+        Continues to assign customers to routes until all are assigned or capacity constraints are violated.
+        Uses the distance matrix to determine the nearest customers every time.
+
+    Always_keep_an_empty_route():
+       Ensure there is always at least one empty route available.
+       Adds a new route if the last route is partially filled.
+
+    MinimumInsertions():
+         Construct initial routes using the minimum insertions.
+         Continuously identifies the best customer to insert into the current routes. (prioritizes inserting customers with the least additional distance.)
+
+    LocalSearch(operator):
+        Apply local search techniques to further optimize the solution.
+        - operator: An integer representing the type of local search move (0: Relocation, 1: Swap, 2: TwoOpt).
+        Implements the specified local search operator to explore neighboring solutions.
+
+    cloneRoute(rt):
+         Clone a given route 'rt' to create an identical route object.
+        - rt: The route to be cloned.
+        Returns the cloned route.
+
+
+    cloneSolution(sol):
+         Clone a given solution 'sol' to create an identical solution object.
+        - sol: The solution to be cloned.
+        Returns the cloned solution.
+
+    FindBestRelocationMove(rm):
+        Find the best relocation move to optimize the solution.
+        Evaluates all possible relocations and identifies the move with the greatest cost improvement.
+        - rm: An instance of the RelocationMove class to store the best move details.
+        Returns the identified best relocation move.
+
+    """
+
     def __init__(self, m):
+        """
+        Initialize the Solver with the given model 'm'.
+        - m: An instance of the Model class containing problem data.
+        """
         self.allNodes = m.allNodes
         self.customers = m.customers
         self.depot = m.allNodes[0]
@@ -87,6 +218,16 @@ class Solver:
         self.bestSolution = None
 
     def solve(self):
+        """
+        Main method to solve the VRP.
+        Executes a sequence of methods to construct and optimize the solution.
+
+        Returns:
+        --------
+        Solution
+            The optimized solution for the VRP.
+        """
+
         self.SetRoutedFlagToFalseForAllCustomers()
         # self.ApplyNearestNeighborMethod()
         self.MinimumInsertions()
@@ -96,10 +237,20 @@ class Solver:
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
+        """
+        Set the 'isRouted' flag to False for all customer nodes.
+        Ensures that all customers are unrouted before constructing a new solution.
+        """
         for i in range(0, len(self.customers)):
             self.customers[i].isRouted = False
 
     def ApplyNearestNeighborMethod(self):
+        """
+        Construct initial routes using the Nearest Neighbor method.
+        Continues to assign customers to routes until all are assigned or capacity constraints are violated.
+        Uses the distance matrix to determine the nearest customers every time.
+        """
+
         modelIsFeasible = True
         self.sol = Solution()
         insertions = 0
@@ -159,6 +310,10 @@ class Solver:
     #     self.TestSolution()
 
     def Always_keep_an_empty_route(self):
+        """
+        Ensure there is always at least one empty route available.
+        Adds a new route if the last route is partially filled.
+        """
         if len(self.sol.routes) == 0:
             rt = Route(self.depot, self.capacity)
             self.sol.routes.append(rt)
@@ -169,6 +324,10 @@ class Solver:
                 self.sol.routes.append(rt)
 
     def MinimumInsertions(self):
+        """
+         Construct initial routes using the minimum insertions.
+         Continuously identifies the best customer to insert into the current routes. (prioritizes inserting customers with the least additional distance.)
+        """
         model_is_feasible = True
         self.sol = Solution()
         insertions = 0
@@ -190,6 +349,14 @@ class Solver:
             self.TestSolution()
 
     def LocalSearch(self, operator):
+        """
+        Apply local search techniques to further optimize the solution.
+
+        Parameters:
+        -----------
+        operator : int
+            Type of local search operation to perform (0: Relocation, 1: Swap, 2: TwoOpt).
+        """
         self.bestSolution = self.cloneSolution(self.sol)
         terminationCondition = False
         localSearchIterator = 0
@@ -237,7 +404,20 @@ class Solver:
 
         self.sol = self.bestSolution
 
-    def cloneRoute(self, rt:Route):
+    def cloneRoute(self, rt: Route):
+        """
+        Create a deep copy of a given route.
+
+        Parameters:
+        -----------
+        rt : Route
+            The route object to be cloned.
+
+        Returns:
+        --------
+        Route
+            Cloned route object.
+        """
         cloned = Route(self.depot, self.capacity)
         cloned.cost = rt.cost
         cloned.load = rt.load
@@ -245,6 +425,20 @@ class Solver:
         return cloned
 
     def cloneSolution(self, sol: Solution):
+        """
+        Create a deep copy of a given solution.
+
+        Parameters:
+        -----------
+        sol : Solution
+            The solution object to be cloned.
+
+        Returns:
+        --------
+        Solution
+            Cloned solution object.
+        """
+
         cloned = Solution()
         for i in range (0, len(sol.routes)):
             rt = sol.routes[i]
@@ -254,6 +448,14 @@ class Solver:
         return cloned
 
     def FindBestRelocationMove(self, rm):
+        """
+        Identify the best relocation move to improve the current solution.
+
+        Parameters:
+        -----------
+        rm : RelocationMove
+            Object to store the details of the best relocation move.
+        """
         for originRouteIndex in range(0, len(self.sol.routes)):
             rt1:Route = self.sol.routes[originRouteIndex]
             for originNodeIndex in range(1, len(rt1.sequenceOfNodes) - 1):
