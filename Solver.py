@@ -149,20 +149,54 @@ class CustomerInsertion(object):
 
 
 class CustomerInsertionAllPositions(object):
+    """
+    Represents a potential customer insertion into all possible positions along a route.
+
+    Attributes:
+        customer (Node): The customer node to be inserted.
+        route (Route): The route where the customer is to be inserted.
+        insertionPosition (Position): The position at which the customer is to be inserted in the route.
+        cost (float): The cost associated with the insertion position,
+                      Initialized to a large value to allow easy replacement with a better cost.
+    """
     def __init__(self):
+        """
+        Initializes a CustomerInsertionAllPositions object.
+
+        The cost attribute is set to a large value (10^9) to ensure it is initially higher than any potential insertion cost.
+        """
         self.customer = None
         self.route = None
         self.insertionPosition = None
         self.cost = 10 ** 9
 
 class TwoOptMove(object):
+    """
+    Represents a potential 2-opt move in the VRP.
+
+    Attributes:
+        positionOfFirstRoute (int): Index of the first route involved in the 2-opt move.
+        positionOfSecondRoute (int): Index of the second route involved in the 2-opt move.
+        positionOfFirstNode (int): Index of the first node to be swapped.
+        positionOfSecondNode (int): Index of the second node to be swapped.
+        moveCost (float): Cost of the relocation move.
+
+    Methods:
+        Initialize(): Resets the attributes to their default values, setting moveCost to a large value(10^9).
+    """
     def __init__(self):
+        """
+        Initializes a TwoOptMove object with default attributes.
+        """
         self.positionOfFirstRoute = None
         self.positionOfSecondRoute = None
         self.positionOfFirstNode = None
         self.positionOfSecondNode = None
         self.moveCost = None
     def Initialize(self):
+        """
+        Resets the attributes to their initial values, setting moveCost to a large value(10^9).
+        """
         self.positionOfFirstRoute = None
         self.positionOfSecondRoute = None
         self.positionOfFirstNode = None
@@ -242,6 +276,52 @@ class Solver:
         Evaluates all possible relocations and identifies the move with the greatest cost improvement.
         - rm: An instance of the RelocationMove class to store the best move details.
         Returns the identified best relocation move.
+
+    InitializeOperators(rm, sm, top):
+         Initializes the move operators for local search.
+         - rm: The relocation move object to be initialized.
+        - sm: The swap move object to be initialized.
+        - top: The 2-opt move object to be initialized.
+
+    FindBestTwoOptMove(top):
+        Finds the best 2-opt move among all possible combinations of routes and nodes.
+        - top: The TwoOptMove object to store the best move information.
+
+    CapacityIsViolated(rt1, nodeInd1, rt2, nodeInd2):
+        Checks whether the capacity of the given routes is violated after a potential 2-opt move.
+        - rt1: Index of the first route involved in the swap.
+        - nodeInd1: Index of the node in `rt1` before which the segment load is calculated.
+        - rt2: Index of the second route involved in the swap.
+        - nodeInd2: Index of the node in `rt2` before which the segment load is calculated.
+        Returns True if the capacity is violated. Otherwise, it return false.
+
+    StoreBestTwoOptMove(rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, top):
+        Stores the information of the best 2-opt move in the provided TwoOptMove object.
+        - rtInd1: Index of the first route in the solution.
+        - rtInd2: Index of the second route in the solution.
+        - nodeInd1: Index of the first node in the first route.
+        - nodeInd2: Index of the second node in the second route.
+        - moveCost: The cost associated with the 2-opt move.
+        - top: TwoOptMove object to be updated with the best move information.
+        
+    ApplyTwoOptMove(top):
+        Applies the best 2-opt move to the solution based on the information provided in the TwoOptMove object.
+        - top: TwoOptMove object which contains the information about the best 2-opt move.
+
+    UpdateRouteCostAndLoad(rt: Route):
+        Updates the cost and load of a given route.
+        - rt: The route whose cost and load need to be updated.
+
+    TestSolution():
+        Tests the integrity of the solution by checking route costs and loads.
+
+    IdentifyMinimumCostInsertion(best_insertion):
+        Identifies the minimum cost insertion for a customer into existing routes.
+        - best_insertion: An object to store information about the best insertion.
+
+    ApplyCustomerInsertionAllPositions(insertion):
+        Applies the customer insertion at all possible positions within a route.
+        - insertion: An object containing information about the customer insertion.
 
     """
 
@@ -931,11 +1011,31 @@ class Solver:
 
 
     def InitializeOperators(self, rm, sm, top):
+        """
+        Initializes the move operators for local search.
+
+        Parameters:
+        - rm (RelocationMove): The relocation move object to be initialized.
+        - sm (SwapMove): The swap move object to be initialized.
+        - top (TwoOptMove): The 2-opt move object to be initialized.
+
+        Returns:
+        None
+        """
         rm.Initialize()
         sm.Initialize()
         top.Initialize()
 
     def FindBestTwoOptMove(self, top):
+        """
+        Finds the best 2-opt move among all possible combinations of routes and nodes.
+
+        Parameters:
+        - top (TwoOptMove): The TwoOptMove object to store the best move information.
+
+        Returns:
+        None
+        """
         for rtInd1 in range(0, len(self.sol.routes)):
             rt1:Route = self.sol.routes[rtInd1]
             for rtInd2 in range(rtInd1, len(self.sol.routes)):
@@ -974,6 +1074,18 @@ class Solver:
 
 
     def CapacityIsViolated(self, rt1, nodeInd1, rt2, nodeInd2):
+        """
+        Checks whether the capacity of the given routes is violated after a potential 2-opt move.
+
+        Parameters:
+        - rt1 (Route): Index of the first route involved in the swap.
+        - nodeInd1 (int): Index of the node in `rt1` before which the segment load is calculated.
+        - rt2 (Route): Index of the second route involved in the swap.
+        - nodeInd2 (int): Index of the node in `rt2` before which the segment load is calculated.
+
+        Returns:
+        - bool: True if the capacity is violated. Otherwise, it return false.
+        """
 
         rt1FirstSegmentLoad = 0
         for i in range(0, nodeInd1 + 1):
@@ -995,6 +1107,17 @@ class Solver:
         return False
 
     def StoreBestTwoOptMove(self, rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, top):
+        """
+        Stores the information of the best 2-opt move in the provided TwoOptMove object.
+
+        Parameters:
+        - rtInd1 (int): Index of the first route in the solution.
+        - rtInd2 (int): Index of the second route in the solution.
+        - nodeInd1 (int): Index of the first node in the first route.
+        - nodeInd2 (int): Index of the second node in the second route.
+        - moveCost (float): The cost associated with the 2-opt move.
+        - top (TwoOptMove): TwoOptMove object to be updated with the best move information.
+        """
         top.positionOfFirstRoute = rtInd1
         top.positionOfSecondRoute = rtInd2
         top.positionOfFirstNode = nodeInd1
@@ -1002,6 +1125,14 @@ class Solver:
         top.moveCost = moveCost
 
     def ApplyTwoOptMove(self, top):
+        """
+        Applies the best 2-opt move to the solution based on the information provided in the TwoOptMove object.
+
+        It updates the overall cost of the solution.
+
+        Parameters:
+        - top (TwoOptMove): TwoOptMove object which contains the information about the best 2-opt move.
+        """
         rt1:Route = self.sol.routes[top.positionOfFirstRoute]
         rt2:Route = self.sol.routes[top.positionOfSecondRoute]
 
@@ -1036,6 +1167,12 @@ class Solver:
         self.sol.cost += top.moveCost
 
     def UpdateRouteCostAndLoad(self, rt: Route):
+        """
+        Updates the cost and load of a given route.
+
+        Parameters:
+        - rt (Route): The route whose cost and load need to be updated.
+        """
         tc = 0
         tl = 0
         for i in range(0, len(rt.sequenceOfNodes) - 1):
@@ -1047,6 +1184,17 @@ class Solver:
         rt.cost = tc
 
     def TestSolution(self):
+        """
+        Tests the integrity of the solution by checking route costs and loads.
+
+        Also, it calculates the total cost of the solution and compares it with the stored solution cost.
+
+        Note: This method is primarily for debugging purposes.
+
+        Raises:
+        - AssertionError: If any route cost or load does not match the stored values.
+                          If the total solution cost does not match the stored solution cost.
+        """
         totalSolCost = 0
         for r in range (0, len(self.sol.routes)):
             rt: Route = self.sol.routes[r]
@@ -1068,6 +1216,18 @@ class Solver:
             print('Solution Cost problem')
 
     def IdentifyMinimumCostInsertion(self, best_insertion):
+         """
+        Identifies the minimum cost insertion for a customer into existing routes.
+
+        Updates the best_insertion object with information about the customer, route, insertion position,
+        and the associated cost.
+
+        Parameters:
+        - best_insertion (CustomerInsertion): An object to store information about the best insertion.
+
+        Returns:
+        None
+        """
         rt : Route
         for i in range(0, len(self.customers)):
             candidateCust: Node = self.customers[i]
@@ -1091,6 +1251,17 @@ class Solver:
                         continue
 
     def ApplyCustomerInsertionAllPositions(self, insertion):
+        """
+        Applies the customer insertion at all possible positions within a route.
+
+        Marks the inserted customer as routed.
+
+        Parameters:
+        - insertion (CustomerInsertion): An object containing information about the customer insertion.
+
+        Returns:
+        None
+        """
         insCustomer = insertion.customer
         rt = insertion.route
         # before the second depot occurrence

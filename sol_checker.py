@@ -2,7 +2,20 @@ import random
 import math
 
 class Node:
+    """
+    Represents a node in a vehicle routing problem.
+
+    Attributes:
+        ID (int): The unique identifier for the node.
+        x (float): The x-coordinate of the node's location.
+        y (float): The y-coordinate of the node's location.
+        isRouted (bool): Indicates whether the node is part of a route.
+        demand (float): The demand associated with the node.
+    """
     def __init__(self, idd, xx, yy, dem=0, st=0):
+        """
+        Initializes a Node object.
+        """
         self.x = xx
         self.y = yy
         self.ID = idd
@@ -75,6 +88,17 @@ def load_model(file_name):
 
 
 def distance(from_node, to_node):
+    """
+    Calculates the Euclidean distance between two nodes.
+
+    Parameters:
+        from_node (Node): The starting node.
+        to_node (Node): The destination node.
+                        The node after "from_node" node.
+
+    Returns:
+        float: The Euclidean distance between the two nodes.
+    """
     dx = from_node.x - to_node.x
     dy = from_node.y - to_node.y
     dist = math.sqrt(dx ** 2 + dy ** 2)
@@ -82,6 +106,16 @@ def distance(from_node, to_node):
 
 
 def calculate_route_details(nodes_sequence, empty_vehicle_weight):
+    """
+    Calculates the total traveled distance multiplied by the total load and total demand of a route.
+
+    Parameters:
+        nodes_sequence (List[Node]): The sequence of nodes in the route.
+        empty_vehicle_weight (float): The weight of an empty vehicle.
+
+    Returns:
+        Tuple[float, float]: A tuple containing the total traveled distance multiplied by the total load and total demand of the route.
+    """
     tot_dem = sum(n.demand for n in nodes_sequence)
     tot_load = empty_vehicle_weight + tot_dem
     tn_km = 0

@@ -1,17 +1,36 @@
 import math
 
 class Model:
+"""
+Represents a Vehicle Routing Problem (VRP) model.
+
+Attributes:
+allNodes (List[Node]): A list containing all nodes, including customers and the warehouse.
+customers (List[Node]): A list containing only customer nodes.
+matrix (List[List[float]]): A matrix representing the distance between nodes.
+capacity (int): The capacity of the vehicles.
+empty_vehicle_weight (int): The weight of an empty vehicle.
+total_customers (int): The total number of customers.
+
+Methods:
+BuildModel(): Reads the data from 'Instance.txt' and builds the VRP model.
+"""
 
 
 # instance variables
     def __init__(self):
+        """
+        Initializes a Model object.
+        """
         self.allNodes = []
         self.customers = []
         self.matrix = []
         self.capacity = -1
 
     def BuildModel(self):
-        """ Reads the data of the Instance and builds the VRP model"""
+        """
+        Reads the data of the 'Instance.txt' and builds the VRP model
+        """
 
         with open('Instance.txt', 'r') as file:
             for line in file:
