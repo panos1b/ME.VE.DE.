@@ -1,20 +1,20 @@
 import math
 
 class Model:
-"""
-Represents a Vehicle Routing Problem (VRP) model.
-
-Attributes:
-allNodes (List[Node]): A list containing all nodes, including customers and the warehouse.
-customers (List[Node]): A list containing only customer nodes.
-matrix (List[List[float]]): A matrix representing the distance between nodes.
-capacity (int): The capacity of the vehicles.
-empty_vehicle_weight (int): The weight of an empty vehicle.
-total_customers (int): The total number of customers.
-
-Methods:
-BuildModel(): Reads the data from 'Instance.txt' and builds the VRP model.
-"""
+    """
+    Represents a Vehicle Routing Problem (VRP) model.
+    
+    Attributes:
+    allNodes (List[Node]): A list containing all nodes, including customers and the warehouse.
+    customers (List[Node]): A list containing only customer nodes.
+    matrix (List[List[float]]): A matrix representing the distance between nodes.
+    capacity (int): The capacity of the vehicles.
+    empty_vehicle_weight (int): The weight of an empty vehicle.
+    total_customers (int): The total number of customers.
+    
+    Methods:
+    BuildModel(): Reads the data from 'Instance.txt' and builds the VRP model.
+    """
 
 
 # instance variables
