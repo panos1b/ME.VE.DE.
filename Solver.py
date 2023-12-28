@@ -1216,7 +1216,8 @@ class Solver:
             print('Solution Cost problem')
 
     def IdentifyMinimumCostInsertion(self, best_insertion):
-         """
+        """
+
         Identifies the minimum cost insertion for a customer into existing routes.
 
         Updates the best_insertion object with information about the customer, route, insertion position,
@@ -1228,6 +1229,7 @@ class Solver:
         Returns:
         None
         """
+
         rt : Route
         for i in range(0, len(self.customers)):
             candidateCust: Node = self.customers[i]
@@ -1272,3 +1274,17 @@ class Solver:
         rt.load += insCustomer.demand
         insCustomer.isRouted = True
 
+    def ReportSolutionToFile(self, sol, filename):
+        with open(filename, 'w') as file:
+            file.write("Cost:\n")
+            file.write(str(sol.cost) + "\n")
+
+            file.write("Routes:\n")
+            file.write(str(len(sol.routes)) + "\n")
+
+            for i in range(len(sol.routes)):
+                rt = sol.routes[i]
+                nodes = ["0"] + [str(node.ID) for node in rt.sequenceOfNodes if
+                                 node.ID != 0]  # Include a zero at the beginning
+                route_str = ",".join(nodes) + "\n"
+                file.write(route_str)
