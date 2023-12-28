@@ -839,6 +839,35 @@ class Solver:
         # Print the total cost of the solution
         print(self.sol.cost)
 
+        def ReportSolutionToFile(self, sol, filename):
+            with open(filename, 'w') as file:
+                file.write("Cost:\n")
+                file.write(str(sol.cost) + "\n")
+
+                file.write("Routes:\n")
+                file.write(str(len(sol.routes)) + "\n")
+
+                for i in range(len(sol.routes)):
+                    rt = sol.routes[i]
+                    nodes = ["0"] + [str(node.ID) for node in rt.sequenceOfNodes if
+                                     node.ID != 0]  # Include a zero at the beginning
+                    route_str = ",".join(nodes) + "\n"
+                    file.write(route_str)
+                    
+    def ReportSolutionToFile(self, sol, filename):
+        with open(filename, 'w') as file:
+            file.write("Cost:\n")
+            file.write(str(sol.cost) + "\n")
+
+            file.write("Routes:\n")
+            file.write(str(len(sol.routes)) + "\n")
+
+            for i in range(len(sol.routes)):
+                rt = sol.routes[i]
+                nodes = ["0"] + [str(node.ID) for node in rt.sequenceOfNodes if
+                                 node.ID != 0]  # Include a zero at the beginning
+                route_str = ",".join(nodes) + "\n"
+                file.write(route_str)
 
     def GetLastOpenRoute(self):
         """
