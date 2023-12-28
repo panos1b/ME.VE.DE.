@@ -105,3 +105,30 @@ class Route:
         self.cost = 0 # Initialize route cost to zero
         self.capacity = cap # Maximum capacity of the route
         self.load = 0 # Current load on the route
+        self.length = 0  # Current length on the route
+
+    def DemandAfterNode(self, start_index):
+        """
+        Takes a vrp route and calculates the demand from the node ID given till the end
+
+        :param start_index: the starting index for the nodes (inclusive)
+        :type start_index:int
+        :return: The demand from the start_index node till the end
+        """
+
+        return sum(node.demand for node in self.sequenceOfNodes[start_index :])
+
+
+    def DistanceBeforeNode(self, end_index, solver_instance):
+        """
+        Takes a vrp route and calculates the distance from the start till the node ID given
+
+        :param end_index: The index to end at
+        :param solver_instance: The instance of the solution (hint: use self)
+        :return: The total distance before the node
+        """
+
+        return sum(
+            solver_instance.distanceMatrix[self.sequenceOfNodes[index].ID][self.sequenceOfNodes[index + 1].ID]
+            for index in range(end_index - 1)
+        )
