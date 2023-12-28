@@ -598,15 +598,34 @@ class Solver:
                             if rt2.load + B.demand > rt2.capacity:
                                 continue
 
-                        costAdded = self.distanceMatrix[A.ID][C.ID] + self.distanceMatrix[F.ID][B.ID] + self.distanceMatrix[B.ID][G.ID]
-                        costRemoved = self.distanceMatrix[A.ID][B.ID] + self.distanceMatrix[B.ID][C.ID] + self.distanceMatrix[F.ID][G.ID]
+                        demandAfterRt1 = rt1.DemandAfterNode(originNodeIndex + 1)
+                        demandAfterRt2 = rt2.DemandAfterNode(targetNodeIndex + 1)
+                        distanceBeforeRt1 = rt1.DistanceBeforeNode(originNodeIndex - 1,self)
+                        distanceBeforeRt2 = rt2.DistanceBeforeNode(targetNodeIndex,self)
 
-                        originRtCostChange = self.distanceMatrix[A.ID][C.ID] - self.distanceMatrix[A.ID][B.ID] - self.distanceMatrix[B.ID][C.ID]
-                        targetRtCostChange = self.distanceMatrix[F.ID][B.ID] + self.distanceMatrix[B.ID][G.ID] - self.distanceMatrix[F.ID][G.ID]
+                        costAdded = (self.distanceMatrix[F.ID][B.ID] + self.distanceMatrix[B.ID][G.ID]) * demandAfterRt2 + \
+                                    self.distanceMatrix[A.ID][C.ID] * demandAfterRt1 + \
+                                    B.demand*(self.distanceMatrix[F.ID][B.ID]+distanceBeforeRt2) \
+
+
+                        costRemoved = (self.distanceMatrix[B.ID][C.ID] + self.distanceMatrix[A.ID][B.ID]) * demandAfterRt1 + \
+                                      self.distanceMatrix[F.ID][G.ID] * demandAfterRt2 + \
+                                      B.demand*(self.distanceMatrix[A.ID][B.ID]+distanceBeforeRt1)
+
 
                         moveCost = costAdded - costRemoved
 
                         if (moveCost < rm.moveCost):
+                            originRtCostChange = demandAfterRt1  * \
+                                                 (self.distanceMatrix[A.ID][C.ID] -
+                                                  self.distanceMatrix[B.ID][C.ID] -
+                                                  self.distanceMatrix[A.ID][B.ID] ) - \
+                                                 B.demand * (self.distanceMatrix[A.ID][B.ID] + distanceBeforeRt1)
+                            targetRtCostChange = demandAfterRt2 * \
+                                                 (self.distanceMatrix[F.ID][B.ID] +
+                                                  self.distanceMatrix[B.ID][G.ID] -
+                                                  self.distanceMatrix[F.ID][G.ID] ) + \
+                                                 B.demand*(self.distanceMatrix[F.ID][B.ID]+distanceBeforeRt2)
                             self.StoreBestRelocationMove(originRouteIndex, targetRouteIndex, originNodeIndex, targetNodeIndex, moveCost, originRtCostChange, targetRtCostChange, rm)
 
     def FindBestSwapMove(self, sm):
@@ -649,17 +668,26 @@ class Solver:
 
                         if rt1 == rt2:
                             if firstNodeIndex == secondNodeIndex - 1:
-                                # Case of consecutive nodes swap
-                                costRemoved = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][b2.ID] + \
-                                            self.distanceMatrix[b2.ID][c2.ID]
-                                costAdded = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][b1.ID] + \
-                                            self.distanceMatrix[b1.ID][c2.ID]
+                                # Case of consecutive nodes swap, rt1 == rt2!!
+                                demandTillEnd= rt1.DemandAfterNode(secondNodeIndex+1)
+                                costRemoved = demandTillEnd * self.distanceMatrix[b2.ID][c2.ID] + \
+                                              (demandTillEnd + c1.demand) * self.distanceMatrix[b1.ID][c1.ID] + \
+                                              (demandTillEnd + c1.demand+b1.demand) + self.distanceMatrix[a1.ID][b1.ID]
+                                costAdded = demandTillEnd * self.distanceMatrix[b1.ID][c2.ID] + \
+                                            (demandTillEnd + b1.demand) * self.distanceMatrix[c1.ID][b1.ID] + \
+                                            (demandTillEnd + b1.demand + c1.demand) * self.distanceMatrix[a1.ID][c1.ID]
                                 moveCost = costAdded - costRemoved
                             else:
-                                costRemoved1 = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][c1.ID]
-                                costAdded1 = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][c1.ID]
-                                costRemoved2 = self.distanceMatrix[a2.ID][b2.ID] + self.distanceMatrix[b2.ID][c2.ID]
-                                costAdded2 = self.distanceMatrix[a2.ID][b1.ID] + self.distanceMatrix[b1.ID][c2.ID]
+                                demandTillEnd1 = rt1.DemandAfterNode(firstNodeIndex + 1)
+                                demandTillEnd2 = rt1.DemandAfterNode(secondNodeIndex + 1)
+                                costRemoved1 = demandTillEnd1 * self.distanceMatrix[b1.ID][c1.ID] + \
+                                              (demandTillEnd1 + b1.demand) * self.distanceMatrix[a1.ID][b1.ID]
+                                costRemoved2 = demandTillEnd2 * self.distanceMatrix[b2.ID][c2.ID] + \
+                                               (demandTillEnd2 + b2.demand) * self.distanceMatrix[a2.ID][b2.ID]
+                                costAdded1 = demandTillEnd1 * self.distanceMatrix[b2.ID][c1.ID] + \
+                                             (demandTillEnd1 + b2.demand) * self.distanceMatrix[a1.ID][b2.ID]
+                                costAdded2 = demandTillEnd2 * self.distanceMatrix[b1.ID][c2.ID] + \
+                                             (demandTillEnd2 + b1.demand) * self.distanceMatrix[a2.ID][b1.ID]
                                 moveCost = costAdded1 + costAdded2 - (costRemoved1 + costRemoved2)
                         else:
                             # Check if the swap is feasible in terms of capacity constraints
@@ -667,11 +695,16 @@ class Solver:
                                 continue
                             if rt2.load - b2.demand + b1.demand > self.capacity:
                                 continue
-
-                            costRemoved1 = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][c1.ID]
-                            costAdded1 = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][c1.ID]
-                            costRemoved2 = self.distanceMatrix[a2.ID][b2.ID] + self.distanceMatrix[b2.ID][c2.ID]
-                            costAdded2 = self.distanceMatrix[a2.ID][b1.ID] + self.distanceMatrix[b1.ID][c2.ID]
+                            demandTillEnd1 = rt1.DemandAfterNode(firstNodeIndex + 1)
+                            demandTillEnd2 = rt1.DemandAfterNode(secondNodeIndex + 1)
+                            costRemoved1 = demandTillEnd1 * self.distanceMatrix[b1.ID][c1.ID] + \
+                                          (demandTillEnd1 + b1.demand) * self.distanceMatrix[a1.ID][b1.ID]
+                            costRemoved2 = demandTillEnd2 * self.distanceMatrix[b2.ID][c2.ID] + \
+                                           (demandTillEnd2 + b2.demand) * self.distanceMatrix[a2.ID][b2.ID]
+                            costAdded1 = demandTillEnd1 * self.distanceMatrix[b2.ID][c1.ID] + \
+                                         (demandTillEnd1 + b2.demand) * self.distanceMatrix[a1.ID][b2.ID]
+                            costAdded2 = demandTillEnd2 * self.distanceMatrix[b1.ID][c2.ID] + \
+                                         (demandTillEnd2 + b1.demand) * self.distanceMatrix[a2.ID][b1.ID]
 
                             costChangeFirstRoute = costAdded1 - costRemoved1
                             costChangeSecondRoute = costAdded2 - costRemoved2
@@ -843,7 +876,8 @@ class Solver:
                 if rt.load + candidateCust.demand <= rt.capacity:
                     # Calculate the cost of inserting the customer into the route
                     lastNodePresentInTheRoute = rt.sequenceOfNodes[-2]
-                    trialCost = self.distanceMatrix[lastNodePresentInTheRoute.ID][candidateCust.ID]
+                    trialCost = (rt.load + candidateCust.demand)*self.distanceMatrix[lastNodePresentInTheRoute.ID][candidateCust.ID]+rt.cost
+                    # FIXME wtf this is in load factor already???
 
                     # Update bestInsertion if the current trialCost is better
                     if trialCost < bestInsertion.cost:
@@ -875,12 +909,11 @@ class Solver:
         beforeInserted = rt.sequenceOfNodes[-3]
 
         # Calculate the cost added and removed due to the customer insertion
-        costAdded = self.distanceMatrix[beforeInserted.ID][insCustomer.ID] + self.distanceMatrix[insCustomer.ID][self.depot.ID]
-        costRemoved = self.distanceMatrix[beforeInserted.ID][self.depot.ID]
+        costAdded = self.distanceMatrix[beforeInserted.ID][insCustomer.ID] * insCustomer.demand
 
         # Update the route and solution costs
-        rt.cost += costAdded - costRemoved
-        self.sol.cost += costAdded - costRemoved
+        rt.cost += costAdded
+        self.sol.cost += costAdded
 
         # Update the load of the route with the demand of the inserted customer
         rt.load += insCustomer.demand
@@ -1195,6 +1228,7 @@ class Solver:
         Returns:
         None
         """
+        rt : Route
         for i in range(0, len(self.customers)):
             candidateCust: Node = self.customers[i]
             if candidateCust.isRouted is False:
@@ -1203,9 +1237,10 @@ class Solver:
                         for j in range(0, len(rt.sequenceOfNodes) - 1):
                             A = rt.sequenceOfNodes[j]
                             B = rt.sequenceOfNodes[j + 1]
-                            costAdded = self.distanceMatrix[A.ID][candidateCust.ID] + self.distanceMatrix[candidateCust.ID][
-                                B.ID]
-                            costRemoved = self.distanceMatrix[A.ID][B.ID]
+                            demandTillEnd = rt.DemandAfterNode(B.ID)
+                            costAdded = demandTillEnd * self.distanceMatrix[candidateCust.ID][B.ID] + \
+                                        (demandTillEnd + candidateCust.demand) * self.distanceMatrix[A.ID][candidateCust.ID]
+                            costRemoved = demandTillEnd * self.distanceMatrix[A.ID][B.ID]
                             trialCost = costAdded - costRemoved
                             if trialCost < best_insertion.cost:
                                 best_insertion.customer = candidateCust
