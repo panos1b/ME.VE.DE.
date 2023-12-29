@@ -335,11 +335,9 @@ class Solver:
         self.SetRoutedFlagToFalseForAllCustomers()
         # self.ApplyNearestNeighborMethod()
         self.MinimumInsertions()
-        self.ReportSolution(self.sol)
         self.LocalSearch(1)
         self.LocalSearch(0)
         self.LocalSearch(2)
-        self.ReportSolution(self.sol)
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
@@ -1191,14 +1189,19 @@ class Solver:
 
 
     def ReportSolutionToFile(self, sol, filename):
+        sol.cost = 0
+        for route in sol.routes:
+            (route_tn_km, route_dem) = route.calculate_route_details(self)
+            sol.cost += route_tn_km
+            route.cost = route_tn_km
         with open(filename, 'w') as file:
             file.write("Cost:\n")
             file.write(str(sol.cost) + "\n")
 
             file.write("Routes:\n")
-            file.write(str(len(sol.routes)) + "\n")
+            file.write(str(len(sol.routes)-1) + "\n")
 
-            for i in range(len(sol.routes)):
+            for i in range(len(sol.routes)-1):
                 rt = sol.routes[i]
                 nodes = ["0"] + [str(node.ID) for node in rt.sequenceOfNodes if
                                  node.ID != 0]  # Include a zero at the beginning
