@@ -336,6 +336,8 @@ class Solver:
         # self.ApplyNearestNeighborMethod()
         self.MinimumInsertions()
         self.ReportSolution(self.sol)
+        self.LocalSearch(1)
+        self.LocalSearch(0)
         self.LocalSearch(2)
         self.ReportSolution(self.sol)
         return self.sol
@@ -471,7 +473,7 @@ class Solver:
         while terminationCondition is False:
 
             self.InitializeOperators(rm, sm, top)
-            SolDrawer.draw(localSearchIterator, self.sol, self.allNodes)
+#            SolDrawer.draw(localSearchIterator, self.sol, self.allNodes)
 
             # Relocations
             if operator == 0:
@@ -497,7 +499,7 @@ class Solver:
                     else:
                         terminationCondition = True
 
-            self.TestSolution()
+#            self.TestSolution()
 
             if (self.sol.cost < self.bestSolution.cost):
                 self.bestSolution = self.cloneSolution(self.sol)

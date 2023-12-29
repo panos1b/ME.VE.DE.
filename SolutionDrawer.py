@@ -10,7 +10,7 @@ class SolDrawer:
         plt.clf()
         SolDrawer.drawPoints(nodes)
         SolDrawer.drawRoutes(sol)
-        plt.savefig(str(itr))
+        plt.savefig("./fig/"+str(itr))
 
     @staticmethod
     def drawPoints(nodes:list):
