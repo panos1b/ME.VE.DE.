@@ -321,6 +321,7 @@ class Solver:
         self.capacity = m.capacity
         self.sol = None
         self.bestSolution = None
+        self.searchTrajectory = []
 
     def solve(self):
         """
@@ -333,11 +334,12 @@ class Solver:
             The optimized solution for the VRP.
         """
         self.SetRoutedFlagToFalseForAllCustomers()
-        # self.ApplyNearestNeighborMethod()
-        self.MinimumInsertions()
-        self.LocalSearch(1)
-        self.LocalSearch(0)
+        self.ApplyNearestNeighborMethod()
+        # self.MinimumInsertions()
+        # self.LocalSearch(1)
+        # self.LocalSearch(0)
         self.LocalSearch(2)
+        self.VND()
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
@@ -506,6 +508,80 @@ class Solver:
             print(localSearchIterator, self.sol.cost)
 
         self.sol = self.bestSolution
+
+    def VND(self):
+        """
+        Perform Variable Neighborhood Descent (VND) optimization on the current solution.
+
+        This method iteratively applies three different types of moves (Relocation, Swap, and Two-Opt)
+        to improve the solution until convergence or a maximum number of iterations.
+
+        :return: None
+        """
+
+        # Initialize the best solution with the current solution
+        self.bestSolution = self.cloneSolution(self.sol)
+
+        # Initialize iteration parameters
+        VNDIterator = 0
+        kmax = 2
+        rm = RelocationMove()
+        sm = SwapMove()
+        top = TwoOptMove()
+        k = 0
+        # draw = True
+
+        # Main loop for VND iterations
+        while k <= kmax:
+            self.InitializeOperators(rm, sm, top)
+
+            # Apply Relocation Move
+            if k == 2:
+                self.FindBestRelocationMove(rm)
+                if rm.originRoutePosition is not None and rm.moveCost < 0:
+                    self.ApplyRelocationMove(rm)
+                    # if draw:
+                    #     SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
+                    VNDIterator = VNDIterator + 1
+                    self.searchTrajectory.append(self.sol.cost)
+                    k = 0
+                else:
+                    k += 1
+
+            # Apply Swap Move
+            elif k == 1:
+                self.FindBestSwapMove(sm)
+                if sm.positionOfFirstRoute is not None and sm.moveCost < 0:
+                    self.ApplySwapMove(sm)
+                    # if draw:
+                    #     SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
+                    VNDIterator = VNDIterator + 1
+                    self.searchTrajectory.append(self.sol.cost)
+                    k = 0
+                else:
+                    k += 1
+
+            # Apply Two-Opt Move
+            elif k == 0:
+                self.FindBestTwoOptMove(top)
+                if top.positionOfFirstRoute is not None and top.moveCost < 0:
+                    self.ApplyTwoOptMove(top)
+                    # if draw:
+                    #     SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
+                    VNDIterator = VNDIterator + 1
+                    self.searchTrajectory.append(self.sol.cost)
+                    k = 0
+                else:
+                    k += 1
+
+            # Update the best solution if a better solution is found
+            if self.sol.cost < self.bestSolution.cost:
+                self.bestSolution = self.cloneSolution(self.sol)
+
+        # Draw the final best solution and the search trajectory
+        # SolDrawer.draw('final_vnd', self.bestSolution, self.allNodes)
+        # SolDrawer.drawTrajectory(self.searchTrajectory)
+
 
     def cloneRoute(self, rt: Route):
         """
