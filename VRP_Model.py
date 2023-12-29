@@ -151,3 +151,27 @@ class Route:
             solver_instance.distanceMatrix[self.sequenceOfNodes[index].ID][self.sequenceOfNodes[index + 1].ID]
             for index in range(end_index - 1)
         )
+
+    def calculate_route_details(self, solver_instance):
+        """
+        Calculates the total traveled distance multiplied by the total load and total demand of a route.
+
+        Parameters:
+            nodes_sequence (List[Node]): The sequence of nodes in the route.
+            empty_vehicle_weight (float): The weight of an empty vehicle.
+
+        Returns:
+            Tuple[float, float]: A tuple containing the total traveled distance multiplied by the total load and total demand of the route.
+        """
+        EMPTY_VEHICLE_WEIGHT= 6
+        tot_dem = sum(n.demand for n in self.sequenceOfNodes)
+        tot_load = EMPTY_VEHICLE_WEIGHT + tot_dem
+        tn_km = 0
+        for i in range(len(self.sequenceOfNodes) - 1):
+            from_node = self.sequenceOfNodes[i]
+            to_node = self.sequenceOfNodes[i + 1]
+            if to_node.ID==0:
+                continue
+            tn_km += solver_instance.distanceMatrix[from_node.ID][to_node.ID] * tot_load
+            tot_load -= to_node.demand
+        return tn_km, tot_dem
