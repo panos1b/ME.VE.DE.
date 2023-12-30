@@ -868,7 +868,7 @@ class Solver:
 
         Modifies the bestInsertion object with the details of the best customer insertion.
         """
-        for i in range(0, len(self.customers)):
+        for i in range(1, len(self.customers)):
             candidateCust: Node = self.customers[i]
             if candidateCust.isRouted is False:
                 if rt.load + candidateCust.demand <= rt.capacity:
