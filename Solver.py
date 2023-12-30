@@ -342,7 +342,7 @@ class Solver:
         # self.LocalSearch(0)
         self.LocalSearch(2)
         self.VND()
-        self.ClownMove(5, 999999)
+        self.ClownMove(5)
         self.LocalSearch(0)
         self.VND()
         self.reverseRoutes()
@@ -588,7 +588,14 @@ class Solver:
         SolDrawer.draw('final_vnd', self.bestSolution, self.allNodes)
         SolDrawer.drawTrajectory(self.searchTrajectory)
 
-    def ClownMove(self,seed,iterations):
+    def ClownMove(self, seed: int, iterations: int = 999999):
+        """
+        Its name comes from clowns which usually juggle balls the same way we jugle the nodes!
+        Randomly picks 2 pairs of nodes and swaps them
+        :arg seed: Pick a number 1~5
+        :arg iterations: How many times (999999) recommended
+        :returns: None
+        """
 
         def capacity_is_violated(rt1, rt2):
             """
@@ -1344,7 +1351,12 @@ class Solver:
                 file.write(route_str)
 
     def reverseRoutes(self):
-        """Will try to reverse routes"""
+        """
+        Takes all routes and tries to see if the reversed route is better.
+        This makes a difference due to tonnage!
+
+        :returns: None
+        """
 
         for i, route in enumerate(self.sol.routes):
             (old_route_tn_km, _) = route.calculate_route_details(self)
