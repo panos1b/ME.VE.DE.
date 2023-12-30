@@ -346,6 +346,7 @@ class Solver:
         self.LocalSearch(0)
         self.VND()
         self.reverseRoutes()
+        self.randomlyPartlyReverseRoutes(5)
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
@@ -1365,3 +1366,42 @@ class Solver:
             (new_route_tn_km, _) = copy_of_route.calculate_route_details(self)
             if new_route_tn_km < old_route_tn_km:
                 self.sol.routes[i] = copy_of_route
+
+    def randomlyPartlyReverseRoutes(self, seed: int, iterations=99999):
+        """
+        Partly reverses subsets of routes
+
+        :arg seed: Pick a number 1~5
+        :arg iterations: How many times (99999) recommended
+        :returns: None
+        """
+        def reverse(list):
+            """
+            Revese!
+            Args:
+                list:
+
+            Returns:
+
+            """
+            temp_list = [item for item in list]
+            j = len(temp_list)-1
+            for i in range(len(list)):
+                list[j] = temp_list[i]
+                j -= 1
+            return list
+        random.seed(seed)
+        for _ in range(iterations):
+            for i, route in enumerate(self.sol.routes):
+                try:
+                    start = random.randint(1, len(route.sequenceOfNodes) - 2)
+                    end = random.randint(start+2, len(route.sequenceOfNodes) - 2)
+                except Exception:
+                    continue
+                (old_route_tn_km, _) = route.calculate_route_details(self)
+                copy_of_route = self.cloneRoute(route)
+                # takes a list slice and partly reverses it. Kinda in place like C++
+                copy_of_route.sequenceOfNodes[start:end] = reverse(copy_of_route.sequenceOfNodes[start:end])
+                (new_route_tn_km, _) = copy_of_route.calculate_route_details(self)
+                if new_route_tn_km < old_route_tn_km:
+                    self.sol.routes[i] = copy_of_route
