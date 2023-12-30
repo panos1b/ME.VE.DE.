@@ -342,9 +342,11 @@ class Solver:
         # self.LocalSearch(0)
         self.LocalSearch(2)
         self.VND()
-        self.ClownMove()
+        self.ClownMove(5)
         self.LocalSearch(0)
         self.VND()
+        self.reverseRoutes()
+        self.randomlyPartlyReverseRoutes(5)
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
@@ -587,7 +589,14 @@ class Solver:
         SolDrawer.draw('final_vnd', self.bestSolution, self.allNodes)
         SolDrawer.drawTrajectory(self.searchTrajectory)
 
-    def ClownMove(self):
+    def ClownMove(self, seed: int, iterations: int = 999999):
+        """
+        Its name comes from clowns which usually juggle balls the same way we jugle the nodes!
+        Randomly picks 2 pairs of nodes and swaps them
+        :arg seed: Pick a number 1~5
+        :arg iterations: How many times (999999) recommended
+        :returns: None
+        """
 
         def capacity_is_violated(rt1, rt2):
             """
@@ -616,7 +625,7 @@ class Solver:
             copy_of_route_2.sequenceOfNodes[node_position_2] = node_1_a
             copy_of_route_2.sequenceOfNodes[node_position_2+1] = node_1_b
             if capacity_is_violated(copy_of_route_1, copy_of_route_2) or \
-                    len(copy_of_route_1.sequenceOfNodes) < 2 or len(copy_of_route_2.sequenceOfNodes) < 2:
+                    len(copy_of_route_1.sequenceOfNodes) < 3 or len(copy_of_route_2.sequenceOfNodes) < 3:
                 return
             else:
 
@@ -628,8 +637,8 @@ class Solver:
                     self.sol.routes[route_position_1]: Route = copy_of_route_1
                     self.sol.routes[route_position_2]: Route = copy_of_route_2
 
-        random.seed(5)
-        iters = 999999
+        random.seed(seed)
+        iters = iterations
         for _ in range(iters):
             # random_seed_2 = random.randint(1,5)
             # random.seed(random_seed_2)
@@ -1341,3 +1350,58 @@ class Solver:
                                  node.ID != 0]  # Include a zero at the beginning
                 route_str = ",".join(nodes) + "\n"
                 file.write(route_str)
+
+    def reverseRoutes(self):
+        """
+        Takes all routes and tries to see if the reversed route is better.
+        This makes a difference due to tonnage!
+
+        :returns: None
+        """
+
+        for i, route in enumerate(self.sol.routes):
+            (old_route_tn_km, _) = route.calculate_route_details(self)
+            copy_of_route = self.cloneRoute(route)
+            copy_of_route.sequenceOfNodes.reverse()
+            (new_route_tn_km, _) = copy_of_route.calculate_route_details(self)
+            if new_route_tn_km < old_route_tn_km:
+                self.sol.routes[i] = copy_of_route
+
+    def randomlyPartlyReverseRoutes(self, seed: int, iterations=99999):
+        """
+        Partly reverses subsets of routes
+
+        :arg seed: Pick a number 1~5
+        :arg iterations: How many times (99999) recommended
+        :returns: None
+        """
+        def reverse(list):
+            """
+            Revese!
+            Args:
+                list:
+
+            Returns:
+
+            """
+            temp_list = [item for item in list]
+            j = len(temp_list)-1
+            for i in range(len(list)):
+                list[j] = temp_list[i]
+                j -= 1
+            return list
+        random.seed(seed)
+        for _ in range(iterations):
+            for i, route in enumerate(self.sol.routes):
+                try:
+                    start = random.randint(1, len(route.sequenceOfNodes) - 2)
+                    end = random.randint(start+2, len(route.sequenceOfNodes) - 2)
+                except Exception:
+                    continue
+                (old_route_tn_km, _) = route.calculate_route_details(self)
+                copy_of_route = self.cloneRoute(route)
+                # takes a list slice and partly reverses it. Kinda in place like C++
+                copy_of_route.sequenceOfNodes[start:end] = reverse(copy_of_route.sequenceOfNodes[start:end])
+                (new_route_tn_km, _) = copy_of_route.calculate_route_details(self)
+                if new_route_tn_km < old_route_tn_km:
+                    self.sol.routes[i] = copy_of_route
