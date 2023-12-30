@@ -345,6 +345,7 @@ class Solver:
         self.ClownMove()
         self.LocalSearch(0)
         self.VND()
+        self.reverseRoutes()
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
@@ -1341,3 +1342,14 @@ class Solver:
                                  node.ID != 0]  # Include a zero at the beginning
                 route_str = ",".join(nodes) + "\n"
                 file.write(route_str)
+
+    def reverseRoutes(self):
+        """Will try to reverse routes"""
+
+        for i, route in enumerate(self.sol.routes):
+            (old_route_tn_km, _) = route.calculate_route_details(self)
+            copy_of_route = self.cloneRoute(route)
+            copy_of_route.sequenceOfNodes.reverse()
+            (new_route_tn_km, _) = copy_of_route.calculate_route_details(self)
+            if new_route_tn_km < old_route_tn_km:
+                self.sol.routes[i] = copy_of_route
