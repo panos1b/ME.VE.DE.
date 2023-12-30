@@ -342,7 +342,7 @@ class Solver:
         # self.LocalSearch(0)
         self.LocalSearch(2)
         self.VND()
-        self.ClownMove()
+        self.ClownMove(5, 999999)
         self.LocalSearch(0)
         self.VND()
         self.reverseRoutes()
@@ -588,7 +588,7 @@ class Solver:
         SolDrawer.draw('final_vnd', self.bestSolution, self.allNodes)
         SolDrawer.drawTrajectory(self.searchTrajectory)
 
-    def ClownMove(self):
+    def ClownMove(self,seed,iterations):
 
         def capacity_is_violated(rt1, rt2):
             """
@@ -617,7 +617,7 @@ class Solver:
             copy_of_route_2.sequenceOfNodes[node_position_2] = node_1_a
             copy_of_route_2.sequenceOfNodes[node_position_2+1] = node_1_b
             if capacity_is_violated(copy_of_route_1, copy_of_route_2) or \
-                    len(copy_of_route_1.sequenceOfNodes) < 2 or len(copy_of_route_2.sequenceOfNodes) < 2:
+                    len(copy_of_route_1.sequenceOfNodes) < 3 or len(copy_of_route_2.sequenceOfNodes) < 3:
                 return
             else:
 
@@ -629,8 +629,8 @@ class Solver:
                     self.sol.routes[route_position_1]: Route = copy_of_route_1
                     self.sol.routes[route_position_2]: Route = copy_of_route_2
 
-        random.seed(5)
-        iters = 999999
+        random.seed(seed)
+        iters = iterations
         for _ in range(iters):
             # random_seed_2 = random.randint(1,5)
             # random.seed(random_seed_2)
