@@ -1,3 +1,5 @@
+import random
+
 from VRP_Model import *
 from SolutionDrawer import *
 
@@ -340,6 +342,7 @@ class Solver:
         # self.LocalSearch(0)
         self.LocalSearch(2)
         self.VND()
+        self.ClownMove()
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
@@ -499,7 +502,7 @@ class Solver:
                     else:
                         terminationCondition = True
 
-#            self.TestSolution()
+            #            self.TestSolution()
 
             if (self.sol.cost < self.bestSolution.cost):
                 self.bestSolution = self.cloneSolution(self.sol)
@@ -529,7 +532,7 @@ class Solver:
         sm = SwapMove()
         top = TwoOptMove()
         k = 0
-        # draw = True
+        draw = True
 
         # Main loop for VND iterations
         while k <= kmax:
@@ -540,8 +543,8 @@ class Solver:
                 self.FindBestRelocationMove(rm)
                 if rm.originRoutePosition is not None and rm.moveCost < 0:
                     self.ApplyRelocationMove(rm)
-                    # if draw:
-                    #     SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
+                    if draw:
+                        SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
                     VNDIterator = VNDIterator + 1
                     self.searchTrajectory.append(self.sol.cost)
                     k = 0
@@ -553,8 +556,8 @@ class Solver:
                 self.FindBestSwapMove(sm)
                 if sm.positionOfFirstRoute is not None and sm.moveCost < 0:
                     self.ApplySwapMove(sm)
-                    # if draw:
-                    #     SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
+                    if draw:
+                         SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
                     VNDIterator = VNDIterator + 1
                     self.searchTrajectory.append(self.sol.cost)
                     k = 0
@@ -566,8 +569,8 @@ class Solver:
                 self.FindBestTwoOptMove(top)
                 if top.positionOfFirstRoute is not None and top.moveCost < 0:
                     self.ApplyTwoOptMove(top)
-                    # if draw:
-                    #     SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
+                    if draw:
+                        SolDrawer.draw(VNDIterator, self.sol, self.allNodes)
                     VNDIterator = VNDIterator + 1
                     self.searchTrajectory.append(self.sol.cost)
                     k = 0
@@ -579,9 +582,70 @@ class Solver:
                 self.bestSolution = self.cloneSolution(self.sol)
 
         # Draw the final best solution and the search trajectory
-        # SolDrawer.draw('final_vnd', self.bestSolution, self.allNodes)
-        # SolDrawer.drawTrajectory(self.searchTrajectory)
+        SolDrawer.draw('final_vnd', self.bestSolution, self.allNodes)
+        SolDrawer.drawTrajectory(self.searchTrajectory)
 
+    def ClownMove(self):
+
+        def capacity_is_violated(rt1, rt2):
+            """
+            Checks whether the capacity of the given routes is violated
+            """
+
+            load_1 = 0
+            for node in rt1.sequenceOfNodes:
+                load_1 += node.demand
+
+            if load_1 > rt1.capacity:
+                return True
+
+            load_2 = 0
+            for node in rt2.sequenceOfNodes:
+                load_2 += node.demand
+
+            if load_2 > rt2.capacity:
+                return True
+            return False
+        def flip_nodes():
+            copy_of_route_1 = self.cloneRoute(route_1)
+            copy_of_route_2 = self.cloneRoute(route_2)
+            copy_of_route_1.sequenceOfNodes[node_position_1] = node_2_a
+            copy_of_route_1.sequenceOfNodes[node_position_1+1] = node_2_b
+            copy_of_route_2.sequenceOfNodes[node_position_2] = node_1_a
+            copy_of_route_2.sequenceOfNodes[node_position_2+1] = node_1_b
+            if capacity_is_violated(copy_of_route_1, copy_of_route_2) or \
+                    len(copy_of_route_1.sequenceOfNodes) < 2 or len(copy_of_route_2.sequenceOfNodes) < 2:
+                return
+            else:
+
+                tn_km_1_new, _ = copy_of_route_1.calculate_route_details(self)
+                tn_km_1_old, _ = route_1.calculate_route_details(self)
+                tn_km_2_new, _ = copy_of_route_2.calculate_route_details(self)
+                tn_km_2_old, _ = route_2.calculate_route_details(self)
+                if tn_km_1_new + tn_km_2_new < (tn_km_1_old + tn_km_2_old)*1.01:
+                    self.sol.routes[route_position_1]: Route = copy_of_route_1
+                    self.sol.routes[route_position_2]: Route = copy_of_route_2
+
+        random.seed(5)
+        iters = 999999
+        for _ in range(iters):
+            # random_seed_2 = random.randint(1,5)
+            # random.seed(random_seed_2)
+            route_position_1 = random.randint(0, len(self.sol.routes) - 1)
+            route_position_2 = random.randint(0, len(self.sol.routes) - 1)
+            route_1: Route = self.sol.routes[route_position_1]
+            route_2: Route = self.sol.routes[route_position_2]
+            try:
+                node_position_1 = random.randint(1, len(route_1.sequenceOfNodes)-3)
+                node_position_2 = random.randint(1, len(route_2.sequenceOfNodes)-3)
+            except Exception:
+                continue
+            node_1_a = route_1.sequenceOfNodes[node_position_1]
+            node_1_b = route_1.sequenceOfNodes[node_position_1+1]
+            node_2_a = route_2.sequenceOfNodes[node_position_2]
+            node_2_b = route_2.sequenceOfNodes[node_position_2+1]
+            if route_2 != route_1:
+                flip_nodes()
 
     def cloneRoute(self, rt: Route):
         """
@@ -868,7 +932,7 @@ class Solver:
 
         Modifies the bestInsertion object with the details of the best customer insertion.
         """
-        for i in range(0, len(self.customers)):
+        for i in range(1, len(self.customers)):
             candidateCust: Node = self.customers[i]
             if candidateCust.isRouted is False:
                 if rt.load + candidateCust.demand <= rt.capacity:
@@ -911,7 +975,6 @@ class Solver:
 
         insCustomer.isRouted = True
 
-
     def StoreBestRelocationMove(self, originRouteIndex, targetRouteIndex, originNodeIndex, targetNodeIndex, moveCost,
                                 originRtCostChange, targetRtCostChange, rm: RelocationMove):
         """
@@ -939,7 +1002,6 @@ class Solver:
         rm.costChangeOriginRt = originRtCostChange
         rm.costChangeTargetRt = targetRtCostChange
         rm.moveCost = moveCost
-
 
     def StoreBestSwapMove(self, firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex, moveCost,
                           costChangeFirstRoute, costChangeSecondRoute, sm):
@@ -1091,7 +1153,6 @@ class Solver:
 
         return False
 
-
     def StoreBestTwoOptMove(self, rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, top):
         """
         Stores the information of the best 2-opt move in the provided TwoOptMove object.
@@ -1109,7 +1170,6 @@ class Solver:
         top.positionOfFirstNode = nodeInd1
         top.positionOfSecondNode = nodeInd2
         top.moveCost = moveCost
-
 
     def ApplyTwoOptMove(self, top):
         """
@@ -1153,7 +1213,6 @@ class Solver:
 
         self.sol.cost += top.moveCost
 
-
     def UpdateRouteCostAndLoad(self, rt: Route):
         """
         Updates the cost and load of a given route.
@@ -1170,7 +1229,6 @@ class Solver:
             tl += A.demand
         rt.load = tl
         rt.cost = tc
-
 
     def TestSolution(self):
         """
@@ -1204,7 +1262,6 @@ class Solver:
         if abs(totalSolCost - self.sol.cost) > 0.0001:
             print('Solution Cost problem')
 
-
     def IdentifyMinimumCostInsertion(self, best_insertion):
         """
 
@@ -1228,8 +1285,9 @@ class Solver:
                         for j in range(0, len(rt.sequenceOfNodes) - 1):
                             A = rt.sequenceOfNodes[j]
                             B = rt.sequenceOfNodes[j + 1]
-                            costAdded = self.distanceMatrix[A.ID][candidateCust.ID] + self.distanceMatrix[candidateCust.ID][
-                                B.ID]
+                            costAdded = self.distanceMatrix[A.ID][candidateCust.ID] + \
+                                        self.distanceMatrix[candidateCust.ID][
+                                            B.ID]
                             costRemoved = self.distanceMatrix[A.ID][B.ID]
                             trialCost = costAdded - costRemoved
                             if trialCost < best_insertion.cost:
@@ -1239,7 +1297,6 @@ class Solver:
                                 best_insertion.cost = trialCost
                     else:
                         continue
-
 
     def ApplyCustomerInsertionAllPositions(self, insertion):
         """
@@ -1263,7 +1320,6 @@ class Solver:
         rt.load += insCustomer.demand
         insCustomer.isRouted = True
 
-
     def ReportSolutionToFile(self, sol, filename):
         sol.cost = 0
         for route in sol.routes:
@@ -1275,12 +1331,11 @@ class Solver:
             file.write(str(sol.cost) + "\n")
 
             file.write("Routes:\n")
-            file.write(str(len(sol.routes)-1) + "\n")
+            file.write(str(len(sol.routes) - 1) + "\n")
 
-            for i in range(len(sol.routes)-1):
+            for i in range(len(sol.routes) - 1):
                 rt = sol.routes[i]
                 nodes = ["0"] + [str(node.ID) for node in rt.sequenceOfNodes if
                                  node.ID != 0]  # Include a zero at the beginning
                 route_str = ",".join(nodes) + "\n"
                 file.write(route_str)
-
