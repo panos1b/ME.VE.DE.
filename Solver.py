@@ -343,6 +343,8 @@ class Solver:
         self.LocalSearch(2)
         self.VND()
         self.ClownMove()
+        self.LocalSearch(0)
+        self.VND()
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
