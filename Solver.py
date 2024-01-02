@@ -360,24 +360,26 @@ class Solver:
         self.ApplyNearestNeighborMethod()
         
         #self.ApplyNearestNeighborMethod()
-        self.bestSolution = self.cloneSolution(self.sol) 
-        
-
+        self.bestSolution = self.cloneSolution(self.sol)
         self.GLS()
         self.ClownMove(5)
+        self.ClownMove(4)
+        self.ClownMove(3)
+        self.ClownMove(2)
+        self.ClownMove(1)
         self.reverseRoutes()
-        SolDrawer.draw('1.GLS.jpg', self.bestSolution, self.allNodes)
         self.randomlyPartlyReverseRoutes(5)
-        self.sol.cost=0
+        self.sol.cost = 0
         for route in self.sol.routes:
             (route_tn_km, route_dem) = route.calculate_route_details(self)
             self.sol.cost += route_tn_km
             route.cost = route_tn_km
         self.Tabu()
-        self.reverseRoutes()
-        SolDrawer.draw('2.TABU.jpg', self.bestSolution, self.allNodes)
-        
-        print(self.bestSolution.cost)
+        self.ClownMove(5)
+        self.ClownMove(4)
+        self.ClownMove(3)
+        self.ClownMove(2)
+        self.randomlyPartlyReverseRoutes(1)
         return self.sol
 
     def SetRoutedFlagToFalseForAllCustomers(self):
@@ -686,7 +688,7 @@ class Solver:
 
     def ClownMove(self, seed: int, iterations: int = 999999):
         """
-        Its name comes from clowns which usually juggle balls the same way we jugle the nodes!
+        Its name comes from clowns which usually juggle balls the same way we juggle the nodes!
         Randomly picks 2 pairs of nodes and swaps them
         :arg seed: Pick a number 1~5
         :arg iterations: How many times (999999) recommended
