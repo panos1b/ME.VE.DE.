@@ -353,6 +353,7 @@ class Solver:
         #self.MinimumInsertions()
         # self.LocalSearch(1)
         # self.LocalSearch(0)
+
         self.GLS(5)
         #self.LocalSearch(2)
         #self.VND()
@@ -360,9 +361,12 @@ class Solver:
         #self.GLS(0)
         #self.LocalSearch(0)
         #self.VND()
-        self.reverseRoutes()
-        self.randomlyPartlyReverseRoutes(5)
-        return self.sol
+        self.LocalSearch(2)
+        self.VND()
+        self.ClownMove(5)
+        self.LocalSearch(0)
+        self.VND()
+
 
     def SetRoutedFlagToFalseForAllCustomers(self):
         """
@@ -1206,6 +1210,7 @@ class Solver:
         rm.costChangeTargetRt = targetRtCostChange
         rm.moveCost = moveCost
 
+
     def StoreBestRelocationMoveForGLS(self, originRouteIndex, targetRouteIndex, originNodeIndex, targetNodeIndex,
                                       moveCost,
                                       moveCost_penalized, originRtCostChange, targetRtCostChange, rm: RelocationMove):
@@ -1228,6 +1233,7 @@ class Solver:
         sm.costChangeSecondRt = costChangeSecondRoute
         sm.moveCost = moveCost
         sm.moveCost_penalized = moveCost_penalized
+
     def StoreBestSwapMove(self, firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex, moveCost,
                           costChangeFirstRoute, costChangeSecondRoute, sm):
         """
@@ -1422,6 +1428,7 @@ class Solver:
 
         return False
 
+
     def StoreBestTwoOptMoveForGLS(self, rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, moveCost_penalized, top):
         top.positionOfFirstRoute = rtInd1
         top.positionOfSecondRoute = rtInd2
@@ -1429,6 +1436,7 @@ class Solver:
         top.positionOfSecondNode = nodeInd2
         top.moveCost = moveCost
         top.moveCost_penalized = moveCost_penalized
+
 
     def StoreBestTwoOptMove(self, rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, top):
         """
@@ -1672,6 +1680,7 @@ class Solver:
                 if new_route_tn_km < old_route_tn_km:
                     self.sol.routes[i] = copy_of_route
 
+
     def penalize_arcsForGLS(self):
         # if self.penalized_n1_ID != -1 and self.penalized_n2_ID != -1:
         #     self.distance_matrix_penalized[self.penalized_n1_ID][self.penalized_n2_ID] = self.distance_matrix[self.penalized_n1_ID][self.penalized_n2_ID]
@@ -1698,3 +1707,4 @@ class Solver:
         self.distanceMatrix[pen_2][pen_1] = (1 + pen_weight * self.times_penalized[pen_2][pen_1]) * self.distanceMatrix[pen_2][pen_1]
         self.penalized_n1_ID = pen_1
         self.penalized_n2_ID = pen_2
+
