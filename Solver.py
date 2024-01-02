@@ -69,6 +69,7 @@ class RelocationMove(object):
         self.costChangeOriginRt = None
         self.costChangeTargetRt = None
         self.moveCost = None
+        self.moveCost_penalized = None  # gls
 
     def Initialize(self):
         """
@@ -81,6 +82,7 @@ class RelocationMove(object):
         self.costChangeOriginRt = None
         self.costChangeTargetRt = None
         self.moveCost = 10 ** 9
+        self.moveCost_penalized = 10 ** 9  # gls
 
 
 class SwapMove(object):
@@ -110,6 +112,7 @@ class SwapMove(object):
         self.costChangeFirstRt = None
         self.costChangeSecondRt = None
         self.moveCost = None
+        self.moveCost_penalized = None  # gls
 
     def Initialize(self):
         """
@@ -124,6 +127,7 @@ class SwapMove(object):
         self.costChangeFirstRt = None
         self.costChangeSecondRt = None
         self.moveCost = 10 ** 9
+        self.moveCost_penalized = 10 ** 9  # gls
 
 
 class CustomerInsertion(object):
@@ -181,6 +185,7 @@ class TwoOptMove(object):
         self.positionOfFirstNode = None
         self.positionOfSecondNode = None
         self.moveCost = None
+        self.moveCost_penalized = None  # gls
 
     def Initialize(self):
         """
@@ -191,6 +196,7 @@ class TwoOptMove(object):
         self.positionOfFirstNode = None
         self.positionOfSecondNode = None
         self.moveCost = 10 ** 9
+        self.moveCost_penalized = 10 ** 9  # gls
 
 
 class Solver:
@@ -325,6 +331,13 @@ class Solver:
         self.bestSolution = None
         self.searchTrajectory = []
 
+        # gls
+        rows = len(self.allNodes)
+        self.distance_matrix_penalized = [[self.distanceMatrix[i][j] for j in range(rows)] for i in range(rows)]
+        self.times_penalized = [[0 for j in range(rows)] for i in range(rows)]
+        self.penalized_n1_ID = -1
+        self.penalized_n2_ID = -1
+
     def solve(self):
         """
         Main method to solve the VRP.
@@ -337,17 +350,23 @@ class Solver:
         """
         self.SetRoutedFlagToFalseForAllCustomers()
         self.ApplyNearestNeighborMethod()
-        # self.MinimumInsertions()
+        #self.MinimumInsertions()
         # self.LocalSearch(1)
         # self.LocalSearch(0)
+
+        self.GLS(5)
+        #self.LocalSearch(2)
+        #self.VND()
+        self.ClownMove(5)
+        #self.GLS(0)
+        #self.LocalSearch(0)
+        #self.VND()
         self.LocalSearch(2)
         self.VND()
         self.ClownMove(5)
         self.LocalSearch(0)
         self.VND()
-        self.reverseRoutes()
-        self.randomlyPartlyReverseRoutes(5)
-        return self.sol
+
 
     def SetRoutedFlagToFalseForAllCustomers(self):
         """
@@ -460,6 +479,59 @@ class Solver:
         if model_is_feasible:
             self.TestSolution()
 
+    def GLS(self, operator):
+        random.seed(1)
+        self.bestSolution = self.cloneSolution(self.sol)
+        terminationCondition = False
+        localSearchIterator = 0
+
+        rm = RelocationMove()
+        sm = SwapMove()
+        top = TwoOptMove()
+
+        while terminationCondition is False:
+            operator = random.randint(0, 2)
+            self.InitializeOperators(rm, sm, top)
+            # SolDrawer.draw(localSearchIterator, self.sol, self.allNodes)
+
+            # Relocations
+            if operator == 0:
+                self.FindBestRelocationMoveForGLS(rm)
+                if rm.originRoutePosition is not None:
+                    if rm.moveCost_penalized < 0:
+                        self.ApplyRelocationMove(rm)
+                    else:
+                        self.penalize_arcsForGLS()
+                        localSearchIterator = localSearchIterator - 1
+            # Swaps
+            elif operator == 1:
+                self.FindBestSwapMoveForGLS(sm)
+                if sm.positionOfFirstRoute is not None:
+                    if sm.moveCost_penalized < 0:
+                        self.ApplySwapMove(sm)
+                    else:
+                        self.penalize_arcsForGLS()
+                        localSearchIterator = localSearchIterator - 1
+            elif operator == 2:
+                self.FindBestTwoOptMoveForGLS(top)
+                if top.positionOfFirstRoute is not None:
+                    if top.moveCost_penalized < 0:
+                        self.ApplyTwoOptMove(top)
+                    else:
+                        self.penalize_arcsForGLS()
+                        localSearchIterator = localSearchIterator - 1
+
+            #     self.TestSolution()
+
+            if (self.sol.cost < self.bestSolution.cost):
+                self.bestSolution = self.cloneSolution(self.sol)
+                print(localSearchIterator, self.bestSolution.cost)
+
+            localSearchIterator = localSearchIterator + 1
+            if localSearchIterator == 23:
+                terminationCondition = True
+
+        self.sol = self.bestSolution
     def LocalSearch(self, operator):
         """
         Apply local search techniques to further optimize the solution.
@@ -700,6 +772,56 @@ class Solver:
         cloned.cost = self.sol.cost
         return cloned
 
+    def FindBestRelocationMoveForGLS(self, rm):
+        for originRouteIndex in range(0, len(self.sol.routes)):
+            rt1: Route = self.sol.routes[originRouteIndex]
+            for originNodeIndex in range(1, len(rt1.sequenceOfNodes) - 1):
+                for targetRouteIndex in range(0, len(self.sol.routes)):
+                    rt2: Route = self.sol.routes[targetRouteIndex]
+                    for targetNodeIndex in range(0, len(rt2.sequenceOfNodes) - 1):
+
+                        if originRouteIndex == targetRouteIndex and (
+                                targetNodeIndex == originNodeIndex or targetNodeIndex == originNodeIndex - 1):
+                            continue
+
+                        A = rt1.sequenceOfNodes[originNodeIndex - 1]
+                        B = rt1.sequenceOfNodes[originNodeIndex]
+                        C = rt1.sequenceOfNodes[originNodeIndex + 1]
+
+                        F = rt2.sequenceOfNodes[targetNodeIndex]
+                        G = rt2.sequenceOfNodes[targetNodeIndex + 1]
+
+                        if rt1 != rt2:
+                            if rt2.load + B.demand > rt2.capacity:
+                                continue
+
+                        costAdded = self.distanceMatrix[A.ID][C.ID] + self.distanceMatrix[F.ID][B.ID] + \
+                                    self.distanceMatrix[B.ID][G.ID]
+                        costRemoved = self.distanceMatrix[A.ID][B.ID] + self.distanceMatrix[B.ID][C.ID] + \
+                                      self.distanceMatrix[F.ID][G.ID]
+
+                        costAdded_penalized = self.distance_matrix_penalized[A.ID][C.ID] + \
+                                              self.distance_matrix_penalized[F.ID][B.ID] + \
+                                              self.distance_matrix_penalized[B.ID][G.ID]
+                        costRemoved_penalized = self.distance_matrix_penalized[A.ID][B.ID] + \
+                                                self.distance_matrix_penalized[B.ID][C.ID] + \
+                                                self.distance_matrix_penalized[F.ID][G.ID]
+
+                        originRtCostChange = self.distanceMatrix[A.ID][C.ID] - self.distanceMatrix[A.ID][B.ID] - \
+                                             self.distanceMatrix[B.ID][C.ID]
+                        targetRtCostChange = self.distanceMatrix[F.ID][B.ID] + self.distanceMatrix[B.ID][G.ID] - \
+                                             self.distanceMatrix[F.ID][G.ID]
+
+                        moveCost = costAdded - costRemoved
+
+                        moveCost_penalized = costAdded_penalized - costRemoved_penalized
+
+                        if (moveCost_penalized < rm.moveCost_penalized):
+                            self.StoreBestRelocationMoveForGLS(originRouteIndex, targetRouteIndex, originNodeIndex,
+                                                               targetNodeIndex, moveCost, moveCost_penalized,
+                                                               originRtCostChange,
+                                                               targetRtCostChange, rm)
+
     def FindBestRelocationMove(self, rm):
         """
         Identify the best relocation move to improve the current solution.
@@ -819,6 +941,80 @@ class Solver:
                         if moveCost < sm.moveCost:
                             self.StoreBestSwapMove(firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex,
                                                    moveCost, costChangeFirstRoute, costChangeSecondRoute, sm)
+    def FindBestSwapMoveForGLS(self, sm):
+        for firstRouteIndex in range(0, len(self.sol.routes)):
+            rt1: Route = self.sol.routes[firstRouteIndex]
+            for secondRouteIndex in range(firstRouteIndex, len(self.sol.routes)):
+                rt2: Route = self.sol.routes[secondRouteIndex]
+                for firstNodeIndex in range(1, len(rt1.sequenceOfNodes) - 1):
+                    startOfSecondNodeIndex = 1
+                    if rt1 == rt2:
+                        startOfSecondNodeIndex = firstNodeIndex + 1
+                    for secondNodeIndex in range(startOfSecondNodeIndex, len(rt2.sequenceOfNodes) - 1):
+
+                        a1 = rt1.sequenceOfNodes[firstNodeIndex - 1]
+                        b1 = rt1.sequenceOfNodes[firstNodeIndex]
+                        c1 = rt1.sequenceOfNodes[firstNodeIndex + 1]
+
+                        a2 = rt2.sequenceOfNodes[secondNodeIndex - 1]
+                        b2 = rt2.sequenceOfNodes[secondNodeIndex]
+                        c2 = rt2.sequenceOfNodes[secondNodeIndex + 1]
+
+                        moveCost = None
+                        costChangeFirstRoute = None
+                        costChangeSecondRoute = None
+
+                        if rt1 == rt2:
+                            if firstNodeIndex == secondNodeIndex - 1:
+                                costRemoved = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][b2.ID] + \
+                                              self.distanceMatrix[b2.ID][c2.ID]
+                                costAdded = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][b1.ID] + \
+                                            self.distanceMatrix[b1.ID][c2.ID]
+                                moveCost = costAdded - costRemoved
+
+                                costRemoved_penalized = self.distance_matrix_penalized[a1.ID][b1.ID] + self.distance_matrix_penalized[b1.ID][b2.ID] + \
+                                                        self.distance_matrix_penalized[b2.ID][c2.ID]
+                                costAdded_penalized = self.distance_matrix_penalized[a1.ID][b2.ID] + self.distance_matrix_penalized[b2.ID][b1.ID] + \
+                                                      self.distance_matrix_penalized[b1.ID][c2.ID]
+                                moveCost_penalized = costAdded_penalized - costRemoved_penalized
+
+                            else:
+                                costRemoved1 = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][c1.ID]
+                                costAdded1 = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][c1.ID]
+                                costRemoved2 = self.distanceMatrix[a2.ID][b2.ID] + self.distanceMatrix[b2.ID][c2.ID]
+                                costAdded2 = self.distanceMatrix[a2.ID][b1.ID] + self.distanceMatrix[b1.ID][c2.ID]
+                                moveCost = costAdded1 + costAdded2 - (costRemoved1 + costRemoved2)
+                                costRemoved1_penalized = self.distance_matrix_penalized[a1.ID][b1.ID] + self.distance_matrix_penalized[b1.ID][c1.ID]
+                                costAdded1_penalized = self.distance_matrix_penalized[a1.ID][b2.ID] + self.distance_matrix_penalized[b2.ID][c1.ID]
+                                costRemoved2_penalized = self.distance_matrix_penalized[a2.ID][b2.ID] + self.distance_matrix_penalized[b2.ID][c2.ID]
+                                costAdded2_penalized = self.distance_matrix_penalized[a2.ID][b1.ID] + self.distance_matrix_penalized[b1.ID][c2.ID]
+                                moveCost_penalized = costAdded1_penalized + costAdded2_penalized - (costRemoved1_penalized + costRemoved2_penalized)
+                        else:
+                            if rt1.load - b1.demand + b2.demand > self.capacity:
+                                continue
+                            if rt2.load - b2.demand + b1.demand > self.capacity:
+                                continue
+
+                            costRemoved1 = self.distanceMatrix[a1.ID][b1.ID] + self.distanceMatrix[b1.ID][c1.ID]
+                            costAdded1 = self.distanceMatrix[a1.ID][b2.ID] + self.distanceMatrix[b2.ID][c1.ID]
+                            costRemoved2 = self.distanceMatrix[a2.ID][b2.ID] + self.distanceMatrix[b2.ID][c2.ID]
+                            costAdded2 = self.distanceMatrix[a2.ID][b1.ID] + self.distanceMatrix[b1.ID][c2.ID]
+                            costRemoved1_penalized = self.distance_matrix_penalized[a1.ID][b1.ID] + self.distance_matrix_penalized[b1.ID][c1.ID]
+                            costAdded1_penalized = self.distance_matrix_penalized[a1.ID][b2.ID] + self.distance_matrix_penalized[b2.ID][c1.ID]
+                            costRemoved2_penalized = self.distance_matrix_penalized[a2.ID][b2.ID] + self.distance_matrix_penalized[b2.ID][c2.ID]
+                            costAdded2_penalized = self.distance_matrix_penalized[a2.ID][b1.ID] + self.distance_matrix_penalized[b1.ID][c2.ID]
+
+                            costChangeFirstRoute = costAdded1 - costRemoved1
+                            costChangeSecondRoute = costAdded2 - costRemoved2
+
+                            moveCost = costAdded1 + costAdded2 - (costRemoved1 + costRemoved2)
+                            moveCost_penalized = costAdded1_penalized + costAdded2_penalized - (
+                                        costRemoved1_penalized + costRemoved2_penalized)
+
+                        if moveCost_penalized < sm.moveCost_penalized:
+                            self.StoreBestSwapMoveForGLS(firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex,
+                                                   moveCost, moveCost_penalized, costChangeFirstRoute, costChangeSecondRoute, sm)
+
 
     def ApplyRelocationMove(self, rm: RelocationMove):
         """
@@ -1014,6 +1210,30 @@ class Solver:
         rm.costChangeTargetRt = targetRtCostChange
         rm.moveCost = moveCost
 
+
+    def StoreBestRelocationMoveForGLS(self, originRouteIndex, targetRouteIndex, originNodeIndex, targetNodeIndex,
+                                      moveCost,
+                                      moveCost_penalized, originRtCostChange, targetRtCostChange, rm: RelocationMove):
+        rm.originRoutePosition = originRouteIndex
+        rm.originNodePosition = originNodeIndex
+        rm.targetRoutePosition = targetRouteIndex
+        rm.targetNodePosition = targetNodeIndex
+        rm.costChangeOriginRt = originRtCostChange
+        rm.costChangeTargetRt = targetRtCostChange
+        rm.moveCost = moveCost
+        rm.moveCost_penalized = moveCost_penalized
+
+    def StoreBestSwapMoveForGLS(self, firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex, moveCost,
+                                moveCost_penalized, costChangeFirstRoute, costChangeSecondRoute, sm):
+        sm.positionOfFirstRoute = firstRouteIndex
+        sm.positionOfSecondRoute = secondRouteIndex
+        sm.positionOfFirstNode = firstNodeIndex
+        sm.positionOfSecondNode = secondNodeIndex
+        sm.costChangeFirstRt = costChangeFirstRoute
+        sm.costChangeSecondRt = costChangeSecondRoute
+        sm.moveCost = moveCost
+        sm.moveCost_penalized = moveCost_penalized
+
     def StoreBestSwapMove(self, firstRouteIndex, secondRouteIndex, firstNodeIndex, secondNodeIndex, moveCost,
                           costChangeFirstRoute, costChangeSecondRoute, sm):
         """
@@ -1130,6 +1350,50 @@ class Solver:
                         if moveCost < top.moveCost:
                             self.StoreBestTwoOptMove(rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, top)
 
+    def FindBestTwoOptMoveForGLS(self, top):
+        for rtInd1 in range(0, len(self.sol.routes)):
+            rt1: Route = self.sol.routes[rtInd1]
+            for rtInd2 in range(rtInd1, len(self.sol.routes)):
+                rt2: Route = self.sol.routes[rtInd2]
+                for nodeInd1 in range(0, len(rt1.sequenceOfNodes) - 1):
+                    start2 = 0
+                    if (rt1 == rt2):
+                        start2 = nodeInd1 + 2
+
+                    for nodeInd2 in range(start2, len(rt2.sequenceOfNodes) - 1):
+                        moveCost = 10 ** 9
+                        moveCost_penalized = 10 ** 9
+
+                        A = rt1.sequenceOfNodes[nodeInd1]
+                        B = rt1.sequenceOfNodes[nodeInd1 + 1]
+                        K = rt2.sequenceOfNodes[nodeInd2]
+                        L = rt2.sequenceOfNodes[nodeInd2 + 1]
+
+                        if rt1 == rt2:
+                            if nodeInd1 == 0 and nodeInd2 == len(rt1.sequenceOfNodes) - 2:
+                                continue
+                            costAdded = self.distanceMatrix[A.ID][K.ID] + self.distanceMatrix[B.ID][L.ID]
+                            costRemoved = self.distanceMatrix[A.ID][B.ID] + self.distanceMatrix[K.ID][L.ID]
+                            costAdded_penalized = self.distance_matrix_penalized[A.ID][K.ID] + self.distance_matrix_penalized[B.ID][L.ID]
+                            costRemoved_penalized = self.distance_matrix_penalized[A.ID][B.ID] + self.distance_matrix_penalized[K.ID][L.ID]
+                            moveCost = costAdded - costRemoved
+                            moveCost_penalized = costAdded_penalized - costRemoved_penalized
+                        else:
+                            if nodeInd1 == 0 and nodeInd2 == 0:
+                                continue
+                            if nodeInd1 == len(rt1.sequenceOfNodes) - 2 and nodeInd2 == len(rt2.sequenceOfNodes) - 2:
+                                continue
+
+                            if self.CapacityIsViolated(rt1, nodeInd1, rt2, nodeInd2):
+                                continue
+                            costAdded = self.distanceMatrix[A.ID][L.ID] + self.distanceMatrix[B.ID][K.ID]
+                            costRemoved = self.distanceMatrix[A.ID][B.ID] + self.distanceMatrix[K.ID][L.ID]
+                            costAdded_penalized = self.distance_matrix_penalized[A.ID][L.ID] + self.distance_matrix_penalized[B.ID][K.ID]
+                            costRemoved_penalized = self.distance_matrix_penalized[A.ID][B.ID] + self.distance_matrix_penalized[K.ID][L.ID]
+                            moveCost = costAdded - costRemoved
+                            moveCost_penalized = costAdded_penalized - costRemoved_penalized
+                        if moveCost_penalized < top.moveCost_penalized:
+                            self.StoreBestTwoOptMoveForGLS(rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, moveCost_penalized, top)
 
     def CapacityIsViolated(self, rt1, nodeInd1, rt2, nodeInd2):
         """
@@ -1163,6 +1427,16 @@ class Solver:
             return True
 
         return False
+
+
+    def StoreBestTwoOptMoveForGLS(self, rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, moveCost_penalized, top):
+        top.positionOfFirstRoute = rtInd1
+        top.positionOfSecondRoute = rtInd2
+        top.positionOfFirstNode = nodeInd1
+        top.positionOfSecondNode = nodeInd2
+        top.moveCost = moveCost
+        top.moveCost_penalized = moveCost_penalized
+
 
     def StoreBestTwoOptMove(self, rtInd1, rtInd2, nodeInd1, nodeInd2, moveCost, top):
         """
@@ -1405,3 +1679,32 @@ class Solver:
                 (new_route_tn_km, _) = copy_of_route.calculate_route_details(self)
                 if new_route_tn_km < old_route_tn_km:
                     self.sol.routes[i] = copy_of_route
+
+
+    def penalize_arcsForGLS(self):
+        # if self.penalized_n1_ID != -1 and self.penalized_n2_ID != -1:
+        #     self.distance_matrix_penalized[self.penalized_n1_ID][self.penalized_n2_ID] = self.distance_matrix[self.penalized_n1_ID][self.penalized_n2_ID]
+        #     self.distance_matrix_penalized[self.penalized_n2_ID][self.penalized_n1_ID] = self.distance_matrix[self.penalized_n2_ID][self.penalized_n1_ID]
+        max_criterion = 0
+        pen_1 = -1
+        pen_2 = -1
+        for i in range(len(self.sol.routes)):
+            rt = self.sol.routes[i]
+            for j in range(len(rt.sequenceOfNodes) - 1):
+                id1 = rt.sequenceOfNodes[j].ID
+                id2 = rt.sequenceOfNodes[j + 1].ID
+                criterion = self.distanceMatrix[id1][id2] / (1 + self.times_penalized[id1][id2])
+                if criterion > max_criterion:
+                    max_criterion = criterion
+                    pen_1 = id1
+                    pen_2 = id2
+        self.times_penalized[pen_1][pen_2] += 1
+        self.times_penalized[pen_2][pen_1] += 1
+
+        pen_weight = 0.15
+
+        self.distanceMatrix[pen_1][pen_2] = (1 + pen_weight * self.times_penalized[pen_1][pen_2]) * self.distanceMatrix[pen_1][pen_2]
+        self.distanceMatrix[pen_2][pen_1] = (1 + pen_weight * self.times_penalized[pen_2][pen_1]) * self.distanceMatrix[pen_2][pen_1]
+        self.penalized_n1_ID = pen_1
+        self.penalized_n2_ID = pen_2
+
