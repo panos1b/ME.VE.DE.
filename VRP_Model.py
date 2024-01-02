@@ -107,6 +107,7 @@ class Node:
         self.ID = idd
         self.demand = dem
         self.isRouted = False
+        self.isTabuTillIterator = -1
 
 class Route:
     def __init__(self, dp, cap):
