@@ -362,7 +362,7 @@ class Solver:
         #self.ApplyNearestNeighborMethod()
         self.bestSolution = self.cloneSolution(self.sol) 
         
-        SolDrawer.draw('0.NN.jpg', self.bestSolution, self.allNodes)
+
         self.GLS()
         self.ClownMove(5)
         self.reverseRoutes()
@@ -913,9 +913,9 @@ class Solver:
         with the details of the best move found.
         """
         for firstRouteIndex in range(0, len(self.sol.routes)):
-            rt1: Route = self.sol.routes[firstRouteIndex]
+            rt1: Route = self.cloneRoute(self.sol.routes[firstRouteIndex])
             for secondRouteIndex in range(firstRouteIndex, len(self.sol.routes)):
-                rt2: Route = self.sol.routes[secondRouteIndex]
+                rt2: Route = self.cloneRoute(self.sol.routes[secondRouteIndex])
                 for firstNodeIndex in range(1, len(rt1.sequenceOfNodes) - 1):
                     startOfSecondNodeIndex = 1
                     if rt1 == rt2:
@@ -1808,7 +1808,7 @@ class Solver:
         self.bestSolution = self.cloneSolution(self.sol)
         use_tabu = True
         solution_cost_trajectory = []
-        random.seed(2)
+        random.seed(1)
         terminationCondition = False
         localSearchIterator = 0
         stuck_iterator=0
