@@ -358,15 +358,14 @@ class Solver:
         """
         self.SetRoutedFlagToFalseForAllCustomers()
         self.ApplyNearestNeighborMethod()
-        
-        #self.ApplyNearestNeighborMethod()
         self.bestSolution = self.cloneSolution(self.sol)
         self.GLS()
-        self.ClownMove(5)
-        self.ClownMove(4)
+        self.ClownMove(5, 1.01)
+        self.ClownMove(4, 1.01)
         self.ClownMove(3)
-        self.ClownMove(2)
-        self.ClownMove(1)
+        self.ClownMove(2, 1.01)
+        self.ClownMove(1, 1.01)
+        self.threeOPT(5)
         self.reverseRoutes()
         self.randomlyPartlyReverseRoutes(5)
         self.sol.cost = 0
@@ -375,10 +374,10 @@ class Solver:
             self.sol.cost += route_tn_km
             route.cost = route_tn_km
         self.Tabu()
-        self.ClownMove(5)
-        self.ClownMove(4)
-        self.ClownMove(3)
-        self.ClownMove(2)
+        self.ClownMove(5, 1.01)
+        self.ClownMove(4, 1.01)
+        self.ClownMove(3, 1.01)
+        self.ClownMove(2, 1.01)
         self.randomlyPartlyReverseRoutes(1)
         return self.sol
 
@@ -686,12 +685,35 @@ class Solver:
         self.sol = self.bestSolution
 
 
-    def ClownMove(self, seed: int, iterations: int = 999999):
+        random.seed(seed)
+        for _ in range(iterations):
+            route_position: int = random.randint(0, len(self.sol.routes) - 1)
+            route: Route = self.sol.routes[route_position]
+            for _ in range(random.randint(20, 30)):
+                try:
+                    node_start_position = random.randint(1, len(route.sequenceOfNodes) - 4)
+                except Exception:
+                    continue
+                node_1 = route.sequenceOfNodes[node_start_position]
+                node_2 = route.sequenceOfNodes[node_start_position + 1]
+                node_3 = route.sequenceOfNodes[node_start_position + 2]
+                copy_of_route = self.cloneRoute(route)
+                nodes = [node_1, node_2, node_3]
+                for random_node in random.sample(nodes, 3):
+                    copy_of_route.sequenceOfNodes[node_start_position] = random_node
+                    node_start_position += 1
+                tn_km_new, _ = copy_of_route.calculate_route_details(self)
+                tn_km_old, _ = route.calculate_route_details(self)
+                if tn_km_new < tn_km_old * 0.98:
+                    self.sol.routes[route_position]: Route = copy_of_route
+
+    def ClownMove(self, seed: int, worse_solution_factor: float = 1.0, iterations: int = 999999):
         """
         Its name comes from clowns which usually juggle balls the same way we juggle the nodes!
         Randomly picks 2 pairs of nodes and swaps them
         :arg seed: Pick a number 1~5
         :arg iterations: How many times (999999) recommended
+        :arg worse_solution_factor: Accept a worse solution (used for unblocking)
         :returns: None
         """
 
@@ -730,7 +752,7 @@ class Solver:
                 tn_km_1_old, _ = route_1.calculate_route_details(self)
                 tn_km_2_new, _ = copy_of_route_2.calculate_route_details(self)
                 tn_km_2_old, _ = route_2.calculate_route_details(self)
-                if tn_km_1_new + tn_km_2_new < (tn_km_1_old + tn_km_2_old)*1.01:
+                if tn_km_1_new + tn_km_2_new < (tn_km_1_old + tn_km_2_old)*worse_solution_factor:
                     self.sol.routes[route_position_1]: Route = copy_of_route_1
                     self.sol.routes[route_position_2]: Route = copy_of_route_2
 
@@ -1855,7 +1877,7 @@ class Solver:
             if stuck_iterator > 400:
                 select=random.randint(1,3)
                 if select == 1:
-                    self.ClownMove(1,1000)
+                    self.ClownMove(1, 1.01, 1000)
                 if select == 2 :
                     self.randomlyPartlyReverseRoutes(1,2)
                 elif select == 3:
