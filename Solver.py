@@ -368,11 +368,7 @@ class Solver:
         self.threeOPT(5)
         self.reverseRoutes()
         self.randomlyPartlyReverseRoutes(5)
-        self.sol.cost = 0
-        for route in self.sol.routes:
-            (route_tn_km, route_dem) = route.calculate_route_details(self)
-            self.sol.cost += route_tn_km
-            route.cost = route_tn_km
+        self.clearCost()
         self.Tabu()
         self.ClownMove(5, 1.01)
         self.ClownMove(4, 1.01)
@@ -381,6 +377,12 @@ class Solver:
         self.randomlyPartlyReverseRoutes(1)
         return self.sol
 
+    def clearCost(self):
+        self.sol.cost = 0
+        for route in self.sol.routes:
+            (route_tn_km, route_dem) = route.calculate_route_details(self)
+            self.sol.cost += route_tn_km
+            route.cost = route_tn_km
     def SetRoutedFlagToFalseForAllCustomers(self):
         """
         Set the 'isRouted' flag to False for all customer nodes.
