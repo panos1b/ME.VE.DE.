@@ -684,6 +684,15 @@ class Solver:
 
         self.sol = self.bestSolution
 
+    def threeOPT(self, seed: int, iterations: int = 99999) -> None:
+        """
+        Apply the 3-opt optimization heuristic to improve the solution.
+
+        :param seed: Seed for the random number generator to ensure reproducibility.
+        :type seed: int
+        :param iterations: Number of iterations for the 3-opt optimization (default is 99999).
+        :type iterations: int
+        """
 
         random.seed(seed)
         for _ in range(iterations):
