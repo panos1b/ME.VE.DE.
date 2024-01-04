@@ -358,8 +358,10 @@ class Solver:
         """
         self.SetRoutedFlagToFalseForAllCustomers()
         self.ApplyNearestNeighborMethod()
+        #SolDrawer.draw("NearestNeighbor.png", self.sol, self.allNodes)
         self.bestSolution = self.cloneSolution(self.sol)
         self.GLS()
+        #SolDrawer.draw("GLS.png", self.sol, self.allNodes)
         self.ClownMove(5, 1.01)
         self.ClownMove(4, 1.01)
         self.ClownMove(3)
@@ -370,11 +372,17 @@ class Solver:
         self.randomlyPartlyReverseRoutes(5)
         self.clearCost()
         self.Tabu()
+        #SolDrawer.draw("Tabu.png", self.sol, self.allNodes)
         self.ClownMove(5, 1.01)
         self.ClownMove(4, 1.01)
         self.ClownMove(3, 1.01)
         self.ClownMove(2, 1.01)
         self.randomlyPartlyReverseRoutes(1)
+        self.Tabu()
+        self.randomlyPartlyReverseRoutes(1)
+        self.Tabu()
+        #SolDrawer.draw("Final.png", self.sol, self.allNodes)
+        
         return self.sol
 
     def clearCost(self):
@@ -1896,7 +1904,7 @@ class Solver:
                 stuck_iterator = 0
             print(localSearchIterator, self.sol.cost, self.bestSolution.cost)
             localSearchIterator = localSearchIterator + 1
-            if localSearchIterator > 25:
+            if localSearchIterator > 250:
                 terminationCondition = True
         self.sol = self.bestSolution
         
