@@ -8,5 +8,3 @@ sol = s.solve()
 s.ReportSolutionToFile(sol, FILE_NAME)
 with open(FILE_NAME, 'r') as f:
     print("\n"+f.read())
-
-
