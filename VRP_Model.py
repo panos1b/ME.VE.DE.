@@ -138,7 +138,6 @@ class Route:
 
         return sum(node.demand for node in self.sequenceOfNodes[start_index :])
 
-
     def DistanceBeforeNode(self, end_index, solver_instance):
         """
         Takes a vrp route and calculates the distance from the start till the node ID given
