@@ -348,60 +348,78 @@ class Solver:
         print("Applying Nearest Neighbour method")
         self.ApplyNearestNeighborMethod()
 
+        SolDrawer.draw("0-NearestNeighbor.png", self.sol, self.allNodes)
         self.bestSolution = self.cloneSolution(self.sol)
 
         print("Applying GLS")
         self.GLS()
 
+        SolDrawer.draw("1-GLS.png", self.sol, self.allNodes)
         print("Applying ClownMove (seed: 5, factor: 1.01)")
         self.ClownMove(5, 1.01)
+        SolDrawer.draw("2-ClownMove.png", self.sol, self.allNodes)
         print("Applying ClownMove (seed: 4, factor: 1.01)")
         self.ClownMove(4, 1.01)
+        SolDrawer.draw("3-ClownMove.png", self.sol, self.allNodes)
         print("Applying ClownMove (seed: 3, factor: 1)")
         self.ClownMove(3)
+        SolDrawer.draw("4-ClownMove.png", self.sol, self.allNodes)
         print("Applying ClownMove (seed: 2, factor: 1.01)")
         self.ClownMove(2, 1.01)
+        SolDrawer.draw("5-ClownMove.png", self.sol, self.allNodes)
         print("Applying ClownMove (seed: 1, factor: 1.01)")
         self.ClownMove(1, 1.01)
+        SolDrawer.draw("6-ClownMove.png", self.sol, self.allNodes)
 
         print("Applying threeOPT")
         self.threeOPT(5)
+        SolDrawer.draw("7-threeOPT.png", self.sol, self.allNodes)
 
         print("Applying Route Reversal")
         self.reverseRoutes()
+        SolDrawer.draw("8-reverseRoutes.png", self.sol, self.allNodes)
 
         print("Applying Random Route Part Reversal (seed: 5)")
         self.randomlyPartlyReverseRoutes(5)
+        SolDrawer.draw("9-randomlyPartlyReverseRoutes.png", self.sol, self.allNodes)
 
         self.clearCost()
 
         print("Applying Tabu")
         self.Tabu()
-
+        SolDrawer.draw("10-Tabu.png", self.sol, self.allNodes)
 
         print("Applying ClownMove (seed: 5, factor: 1.01)")
         self.ClownMove(5, 1.01)
+        SolDrawer.draw("11-ClownMove.png", self.sol, self.allNodes)
 
         print("Applying ClownMove (seed: 4, factor: 1.01)")
         self.ClownMove(4, 1.01)
+        SolDrawer.draw("12-ClownMove.png", self.sol, self.allNodes)
 
         print("Applying ClownMove (seed: 3, factor: 1.01)")
         self.ClownMove(3, 1.01)
+        SolDrawer.draw("13-ClownMove.png", self.sol, self.allNodes)
 
         print("Applying ClownMove (seed: 2, factor: 1.01)")
         self.ClownMove(2, 1.01)
+        SolDrawer.draw("14-ClownMove.png", self.sol, self.allNodes)
 
         print("Applying Random Route Part Reversal (seed: 1)")
         self.randomlyPartlyReverseRoutes(1)
+        SolDrawer.draw("15-randomlyPartlyReverseRoutes.png", self.sol, self.allNodes)
 
         print("Applying Tabu")
         self.Tabu()
+        SolDrawer.draw("16-Tabu.png", self.sol, self.allNodes)
 
         print("Applying Random Route Part Reversal (seed: 1)")
         self.randomlyPartlyReverseRoutes(1)
+        SolDrawer.draw("17-randomlyPartlyReverseRoutes.png", self.sol, self.allNodes)
 
         print("Applying Tabu")
         self.Tabu()
+        SolDrawer.draw("18-Tabu.png", self.sol, self.allNodes)
         return self.sol
 
     def clearCost(self):
@@ -461,6 +479,7 @@ class Solver:
         while terminationCondition is False:
             operator = random.randint(0, 2)
             self.InitializeOperators(rm, sm, top)
+            SolDrawer.draw("gls/"+str(localSearchIterator), self.sol, self.allNodes)
 
             # Relocations
             if operator == 0:
