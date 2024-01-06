@@ -1,4 +1,3 @@
-#from TSP_Model import Model
 from Solver import *
 FILE_NAME = 'example_solution.txt'
 

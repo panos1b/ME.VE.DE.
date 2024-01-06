@@ -1,7 +1,6 @@
 import random
 
 from VRP_Model import *
-from SolutionDrawer import *
 
 
 class Solution:
